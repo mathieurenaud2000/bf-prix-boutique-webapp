@@ -17,3 +17,4 @@ function debug_readSheetStructure() {
     headersValidated: true
   };
 }
+
