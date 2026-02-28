@@ -5,8 +5,304 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prix Boutique 2026</title>
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        background: #FFFFFF;
+      }
+
+      h1 {
+        margin: 0;
+      }
+
+      ul#collections-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      li.collection-row {
+        margin: 0;
+        padding: 0;
+      }
+
+      #app-root {
+        height: 100%;
+        overflow-x: hidden;
+      }
+
+      #state-a {
+        height: 100vh;
+        overflow-x: hidden;
+      }
+
+      .panel-n1 {
+        height: 100vh;
+        overflow-x: hidden;
+      }
+
+      .panel-inner {
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        padding: 24px;
+      }
+
+      .header-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin: 0;
+        padding: 0;
+      }
+
+      .header-left {
+        margin: 0;
+        padding: 0;
+      }
+
+      .header-right {
+        margin: 0;
+        padding: 0;
+      }
+
+      #title-collections {
+        color: #000000;
+        font-size: 24px;
+        line-height: normal;
+        padding: 0;
+      }
+
+      #title-tool {
+        color: #000000;
+        font-size: 32px;
+        line-height: normal;
+        padding: 0;
+        white-space: nowrap;
+      }
+
+      .header-divider {
+        height: 1px;
+        margin: 0;
+        padding: 0;
+        background: #D0D0D0;
+      }
+
+      .list-wrapper {
+        flex: 1;
+        margin: 0;
+        padding: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+      }
+
+      .collection-row {
+        box-sizing: border-box;
+        height: 48px;
+        border-bottom: 1px solid #D0D0D0;
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+      }
+
+      .collection-row[data-active="false"][data-hoverable="true"]:hover {
+        background: #EFEFEF;
+      }
+
+      .collection-row[data-active="true"] {
+        background: #E4E4E4;
+      }
+
+      .cell-pastille {
+        width: 32px;
+        margin: 0;
+        padding: 0;
+        display: flex;
+      }
+
+      .spacer-left {
+        width: 10px;
+        margin: 0;
+        padding: 0;
+      }
+
+      .pastille-box {
+        width: 12px;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .spacer-right {
+        width: 10px;
+        margin: 0;
+        padding: 0;
+      }
+
+      .pastille-circle {
+        width: 12px;
+        height: 12px;
+        margin: 0;
+        padding: 0;
+        border-radius: 50%;
+      }
+
+      .collection-row[data-status="neutral"] .pastille-circle {
+        background: #9E9E9E;
+      }
+
+      .collection-row[data-status="problem"] .pastille-circle {
+        background: #D92D20;
+      }
+
+      .collection-row[data-status="ok"] .pastille-circle {
+        background: #16A34A;
+      }
+
+      .cell-name {
+        flex: 1;
+        min-width: 0;
+        margin: 0;
+        padding: 0;
+        color: #000000;
+        font-size: 16px;
+        line-height: 16px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .cell-fraction {
+        width: 64px;
+        margin: 0;
+        padding: 0;
+        color: #000000;
+        font-size: 16px;
+        line-height: 16px;
+        text-align: right;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    </style>
   </head>
   <body>
-    <div>UI OK — Prix Boutique 2026</div>
+    <div id="app-root">
+      <div id="state-a">
+        <div class="panel-n1">
+          <div class="panel-inner">
+            <div class="header-row">
+              <div class="header-left">
+                <h1 id="title-collections">Collections</h1>
+              </div>
+              <div class="header-right">
+                <h1 id="title-tool">Outil de mise à jour de prix</h1>
+              </div>
+            </div>
+            <div class="header-divider"></div>
+            <div class="list-wrapper">
+              <ul id="collections-list">
+                <li class="collection-row" data-status="ok" data-active="false" data-hoverable="true">
+                  <div class="cell-pastille">
+                    <div class="spacer-left"></div>
+                    <div class="pastille-box">
+                      <div class="pastille-circle"></div>
+                    </div>
+                    <div class="spacer-right"></div>
+                  </div>
+                  <div class="cell-name">Perle</div>
+                  <div class="cell-fraction">2 / 10</div>
+                </li>
+                <li class="collection-row" data-status="neutral" data-active="false" data-hoverable="true">
+                  <div class="cell-pastille">
+                    <div class="spacer-left"></div>
+                    <div class="pastille-box">
+                      <div class="pastille-circle"></div>
+                    </div>
+                    <div class="spacer-right"></div>
+                  </div>
+                  <div class="cell-name">Perle d’Eau Douce</div>
+                  <div class="cell-fraction">0 / 12</div>
+                </li>
+                <li class="collection-row" data-status="problem" data-active="false" data-hoverable="true">
+                  <div class="cell-pastille">
+                    <div class="spacer-left"></div>
+                    <div class="pastille-box">
+                      <div class="pastille-circle"></div>
+                    </div>
+                    <div class="spacer-right"></div>
+                  </div>
+                  <div class="cell-name">Océan</div>
+                  <div class="cell-fraction">1 / 8</div>
+                </li>
+                <li class="collection-row" data-status="neutral" data-active="false" data-hoverable="true">
+                  <div class="cell-pastille">
+                    <div class="spacer-left"></div>
+                    <div class="pastille-box">
+                      <div class="pastille-circle"></div>
+                    </div>
+                    <div class="spacer-right"></div>
+                  </div>
+                  <div class="cell-name">Douce Mémoire</div>
+                  <div class="cell-fraction">4 / 9</div>
+                </li>
+                <li class="collection-row" data-status="ok" data-active="false" data-hoverable="true">
+                  <div class="cell-pastille">
+                    <div class="spacer-left"></div>
+                    <div class="pastille-box">
+                      <div class="pastille-circle"></div>
+                    </div>
+                    <div class="spacer-right"></div>
+                  </div>
+                  <div class="cell-name">Souvenir</div>
+                  <div class="cell-fraction">3 / 7</div>
+                </li>
+                <li class="collection-row" data-status="neutral" data-active="false" data-hoverable="true">
+                  <div class="cell-pastille">
+                    <div class="spacer-left"></div>
+                    <div class="pastille-box">
+                      <div class="pastille-circle"></div>
+                    </div>
+                    <div class="spacer-right"></div>
+                  </div>
+                  <div class="cell-name">Héritage</div>
+                  <div class="cell-fraction">0 / 5</div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      (function() {
+        var rows = document.querySelectorAll(".collection-row");
+
+        function setActiveRow(activeRow) {
+          Array.prototype.forEach.call(rows, function(row) {
+            if (row === activeRow) {
+              row.setAttribute("data-active", "true");
+              row.setAttribute("data-hoverable", "false");
+            } else {
+              row.setAttribute("data-active", "false");
+              row.setAttribute("data-hoverable", "true");
+            }
+          });
+        }
+
+        Array.prototype.forEach.call(rows, function(row) {
+          row.addEventListener("click", function() {
+            setActiveRow(row);
+          });
+        });
+      })();
+    </script>
   </body>
 </html>
