@@ -3,86 +3,139 @@ function getSheet() {
   var sheet = spreadsheet.getSheetByName(SHEET_NAME);
 
   if (!sheet) {
-    return createError(
-      "ERR_SHEET_NOT_FOUND",
-      "Configured sheet was not found.",
-      {
-        sheetName: SHEET_NAME
-      }
-    );
+    return createError("ERR_SHEET_NOT_FOUND", "Configured sheet was not found.", {
+      sheetName: SHEET_NAME
+    });
   }
 
-  return sheet;
+  return {
+    ok: true,
+    data: {
+      sheet: sheet,
+      name: SHEET_NAME
+    }
+  };
 }
 
 function readHeaderRow() {
-  var sheet = getSheet();
-  if (sheet && sheet.ok === false) {
-    return sheet;
+  var sheetRes = getSheet();
+  var sheet;
+  var lastColumn;
+  var headers;
+  var columnMapRes;
+
+  if (!sheetRes.ok) {
+    return sheetRes;
   }
 
-  var lastColumn = sheet.getLastColumn();
+  sheet = sheetRes.data.sheet;
+  lastColumn = sheet.getLastColumn();
+
   if (lastColumn < 1) {
-    return [];
+    headers = [];
+  } else {
+    headers = sheet.getRange(HEADER_ROW, 1, 1, lastColumn).getValues()[0].map(function(value) {
+      var normalizedValue;
+
+      if (value === null || typeof value === "undefined") {
+        return null;
+      }
+
+      normalizedValue = String(value).trim();
+      return normalizedValue === "" ? null : normalizedValue;
+    });
   }
 
-  return sheet.getRange(HEADER_ROW, 1, 1, lastColumn).getValues()[0].map(function(value) {
-    return value === "" ? null : value;
-  });
+  columnMapRes = buildColumnMap(headers);
+  if (!columnMapRes.ok) {
+    return columnMapRes;
+  }
+
+  return {
+    ok: true,
+    data: {
+      headers: headers
+    }
+  };
 }
 
 function readDataRows() {
-  var sheet = getSheet();
-  if (sheet && sheet.ok === false) {
-    return sheet;
+  var sheetRes = getSheet();
+  var headerRes;
+  var headers;
+  var columnMapRes;
+  var colToHeader;
+  var sheet;
+  var lastRow;
+  var lastColumn;
+  var rowCount;
+  var values;
+  var rows;
+
+  if (!sheetRes.ok) {
+    return sheetRes;
   }
 
-  var headers = readHeaderRow();
-  if (headers && headers.ok === false) {
-    return headers;
+  headerRes = readHeaderRow();
+  if (!headerRes.ok) {
+    return headerRes;
   }
 
-  var columnMap = buildColumnMap(headers);
-  if (columnMap && columnMap.ok === false) {
-    return columnMap;
+  headers = headerRes.data.headers;
+  columnMapRes = buildColumnMap(headers);
+  if (!columnMapRes.ok) {
+    return columnMapRes;
   }
 
-  var lastRow = sheet.getLastRow();
+  colToHeader = columnMapRes.data.colToHeader;
+  sheet = sheetRes.data.sheet;
+  lastRow = sheet.getLastRow();
+
   if (lastRow < DATA_START_ROW) {
-    return [];
+    return {
+      ok: true,
+      data: {
+        rows: []
+      }
+    };
   }
 
-  var rowCount = lastRow - DATA_START_ROW + 1;
-  var lastColumn = sheet.getLastColumn();
-  var range = sheet.getRange(DATA_START_ROW, 1, rowCount, lastColumn);
-  var values = range.getValues();
-  var formulas = range.getFormulas();
-  var okColumnIndex = columnMap.headerToCol.ok - 1;
+  lastColumn = sheet.getLastColumn();
+  rowCount = lastRow - DATA_START_ROW + 1;
+  values = sheet.getRange(DATA_START_ROW, 1, rowCount, lastColumn).getValues();
 
-  return values.map(function(rowValues, rowIndex) {
+  rows = values.map(function(rowValues) {
     var rowObject = {};
+    var colIndex;
+    var header;
+    var rawValue;
+    var normalizedValue;
 
-    headers.forEach(function(header, columnIndex) {
-      if (header === null) {
-        return;
+    for (colIndex = 1; colIndex <= lastColumn; colIndex += 1) {
+      header = colToHeader[String(colIndex)];
+
+      if (header === null || typeof header === "undefined") {
+        continue;
       }
 
-      var rawValue = rowValues[columnIndex];
-      var formula = formulas[rowIndex][columnIndex];
-      var isPhysicallyEmpty = rawValue === "" && formula === "";
-      var normalizedValue;
+      rawValue = rowValues[colIndex - 1];
 
-      if (columnIndex === okColumnIndex) {
+      if (header === "ok") {
         normalizedValue = rawValue === true ? true : null;
-      } else if (isPhysicallyEmpty) {
-        normalizedValue = null;
       } else {
-        normalizedValue = rawValue;
+        normalizedValue = rawValue === "" ? null : rawValue;
       }
 
       rowObject[header] = normalizedValue;
-    });
+    }
 
     return rowObject;
   });
+
+  return {
+    ok: true,
+    data: {
+      rows: rows
+    }
+  };
 }
