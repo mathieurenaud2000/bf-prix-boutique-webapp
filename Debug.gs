@@ -3,6 +3,7 @@ function debug_readSheetStructure() {
   if (headers && headers.ok === false) {
     return headers;
   }
+  headers = headers.data.headers;
 
   var columnMap = buildColumnMap(headers);
   if (columnMap && columnMap.ok === false) {

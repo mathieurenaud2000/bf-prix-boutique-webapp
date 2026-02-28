@@ -21,6 +21,7 @@ function api_loadMaster(id_master) {
   if (headers && headers.ok === false) {
     return headers;
   }
+  headers = headers.data.headers;
 
   var columnMap = buildColumnMap(headers);
   if (columnMap && columnMap.ok === false) {
@@ -31,6 +32,7 @@ function api_loadMaster(id_master) {
   if (rows && rows.ok === false) {
     return rows;
   }
+  rows = rows.data.rows;
 
   var rowsForMaster = rows.filter(function(row) {
     return row.id_master === convertedIdMaster;

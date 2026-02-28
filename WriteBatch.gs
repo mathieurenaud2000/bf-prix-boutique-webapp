@@ -174,6 +174,7 @@ function writeMasterBatch(idMaster, expectedRowRefs, updates) {
     if (headers && headers.ok === false) {
       return headers;
     }
+    headers = headers.data.headers;
 
     var columnMap = buildColumnMap(headers);
     if (columnMap && columnMap.ok === false) {
@@ -184,6 +185,7 @@ function writeMasterBatch(idMaster, expectedRowRefs, updates) {
     if (rows && rows.ok === false) {
       return rows;
     }
+    rows = rows.data.rows;
 
     var rowsWithRefs = rows.map(function(row, index) {
       return {
@@ -297,6 +299,7 @@ function writeMasterBatch(idMaster, expectedRowRefs, updates) {
     if (sheet && sheet.ok === false) {
       return sheet;
     }
+    sheet = sheet.data.sheet;
 
     var okCol = columnMap.headerToCol.ok;
     var writableColumns = Object.keys(writableColumnSet).map(function(colKey) {
