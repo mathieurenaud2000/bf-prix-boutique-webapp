@@ -291,6 +291,63 @@
         line-height: normal;
         padding: 0;
       }
+
+      #debug-popup-host {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        z-index: 9999;
+        pointer-events: none;
+      }
+
+      #debug-popup {
+        width: 360px;
+        max-width: calc(100vw - 32px);
+        max-height: calc(100vh - 32px);
+        box-sizing: border-box;
+        padding: 12px;
+        border: 1px solid #D0D0D0;
+        background: #FFFFFF;
+        color: #000000;
+        font-size: 12px;
+        line-height: 1.4;
+        overflow: auto;
+        pointer-events: auto;
+      }
+
+      #debug-popup-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 8px;
+      }
+
+      #debug-popup-title {
+        font-size: 14px;
+        line-height: 1.2;
+        font-weight: 600;
+      }
+
+      #debug-popup-close {
+        padding: 0;
+        margin: 0;
+        border: none;
+        background: transparent;
+        color: #000000;
+        cursor: pointer;
+        font-size: 14px;
+        line-height: 1;
+      }
+
+      #debug-popup-body {
+        margin-top: 8px;
+      }
+
+      #debug-popup-body pre {
+        margin: 8px 0 0 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
     </style>
   </head>
   <body>
@@ -637,11 +694,87 @@
           ]);
         }
 
+        function showDebugPopup(title, lines, payload) {
+          var host = document.getElementById("debug-popup-host");
+          var popup;
+          var header;
+          var titleNode;
+          var closeButtonNode;
+          var body;
+          var details;
+          var pre;
+
+          if (!host) {
+            host = document.createElement("div");
+            host.id = "debug-popup-host";
+            document.body.appendChild(host);
+          }
+
+          host.textContent = "";
+
+          popup = document.createElement("div");
+          popup.id = "debug-popup";
+
+          header = document.createElement("div");
+          header.id = "debug-popup-header";
+
+          titleNode = document.createElement("div");
+          titleNode.id = "debug-popup-title";
+          titleNode.textContent = title;
+
+          closeButtonNode = document.createElement("button");
+          closeButtonNode.id = "debug-popup-close";
+          closeButtonNode.type = "button";
+          closeButtonNode.textContent = "X";
+          closeButtonNode.addEventListener("click", function() {
+            host.textContent = "";
+          });
+
+          body = document.createElement("div");
+          body.id = "debug-popup-body";
+          details = document.createElement("div");
+          details.textContent = lines.join("\n");
+
+          pre = document.createElement("pre");
+          pre.textContent = JSON.stringify(payload, null, 2);
+
+          header.appendChild(titleNode);
+          header.appendChild(closeButtonNode);
+          body.appendChild(details);
+          body.appendChild(pre);
+          popup.appendChild(header);
+          popup.appendChild(body);
+          host.appendChild(popup);
+        }
+
         function loadStateB(collectionKey) {
           var payloadCollectionKey = String(collectionKey).trim().replace(/\u2019/g, "'");
 
           google.script.run
             .withSuccessHandler(function(res) {
+              var lines;
+
+              if (res && res.ok === true) {
+                lines = [
+                  "clicked collectionKey: " + String(collectionKey),
+                  "payloadCollectionKey: " + payloadCollectionKey,
+                  "res.ok: true",
+                  "res.data.collectionKey: " + String(res.data.collectionKey),
+                  "res.data.collectionName: " + String(res.data.collectionName),
+                  "masters length: " + String(res.data.masters.length)
+                ];
+              } else {
+                lines = [
+                  "clicked collectionKey: " + String(collectionKey),
+                  "payloadCollectionKey: " + payloadCollectionKey,
+                  "res.ok: false",
+                  "res.error.code: " + String(res && res.error ? res.error.code : ""),
+                  "res.error.message: " + String(res && res.error ? res.error.message : "")
+                ];
+              }
+
+              showDebugPopup("ui_loadStateB response", lines, res);
+
               if (res && res.ok === true) {
                 titleCollectionActive.textContent = res.data.collectionName;
                 renderMasters(res.data.masters);
@@ -651,6 +784,10 @@
               renderLoadError();
             })
             .withFailureHandler(function(err) {
+              showDebugPopup("FAILURE", [
+                "clicked collectionKey: " + String(collectionKey),
+                "payloadCollectionKey: " + payloadCollectionKey
+              ], err);
               renderLoadError();
             })
             .ui_loadStateB({ collectionKey: payloadCollectionKey });
