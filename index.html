@@ -6,11 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prix Boutique 2026</title>
     <style>
+      @import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap");
+
       html {
         height: auto;
         margin: 0;
         overflow-y: auto;
         overflow-x: hidden;
+        font-family: "Roboto", sans-serif;
       }
 
       body {
@@ -19,6 +22,7 @@
         background: #FFFFFF;
         overflow-y: visible;
         overflow-x: hidden;
+        font-family: "Roboto", sans-serif;
       }
 
       h1 {
@@ -41,6 +45,7 @@
         height: auto;
         overflow: visible;
         overflow-x: hidden;
+        font-family: "Roboto", sans-serif;
       }
 
       #state-a {
@@ -119,7 +124,7 @@
       }
 
       .collection-row[data-active="false"][data-hoverable="true"]:hover {
-        background: #EFEFEF;
+        background: #f2f2f2;
       }
 
       .collection-row[data-active="true"] {
@@ -471,7 +476,7 @@
                 <h1 id="title-collection-active">Collection</h1>
               </div>
               <div class="header-right">
-                <button id="btn-close-n2" type="button">Fermer</button>
+                <button id="btn-close-n2" type="button">X</button>
               </div>
             </div>
             <div class="header-divider"></div>
@@ -566,6 +571,16 @@
           });
         }
 
+        function toTitleCaseDisplay_(value) {
+          return String(value).split(" ").map(function(token) {
+            if (token === "") {
+              return token;
+            }
+
+            return token.charAt(0).toUpperCase() + token.slice(1).toLowerCase();
+          }).join(" ");
+        }
+
         function buildCollectionRow(item, isActive, includeFraction) {
           var row = document.createElement("li");
           var cellPastille = document.createElement("div");
@@ -588,7 +603,7 @@
           pastilleCircle.className = "pastille-circle";
           spacerRight.className = "spacer-right";
           cellName.className = "cell-name";
-          cellName.textContent = item.name;
+          cellName.textContent = toTitleCaseDisplay_(item.name);
 
           pastilleBox.appendChild(pastilleCircle);
           cellPastille.appendChild(spacerLeft);
@@ -628,7 +643,7 @@
           pastilleCircle.className = "pastille-circle";
           spacerRight.className = "spacer-right";
           cellName.className = "cell-name";
-          cellName.textContent = item.name;
+          cellName.textContent = toTitleCaseDisplay_(item.name);
 
           pastilleBox.appendChild(pastilleCircle);
           cellPastille.appendChild(spacerLeft);
@@ -684,7 +699,7 @@
           if (activeCollectionKey === null) {
             titleCollectionActive.textContent = defaultCollectionTitle;
           } else {
-            titleCollectionActive.textContent = activeCollectionKey;
+            titleCollectionActive.textContent = toTitleCaseDisplay_(activeCollectionKey);
           }
         }
 
