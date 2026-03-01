@@ -291,63 +291,6 @@
         line-height: normal;
         padding: 0;
       }
-
-      #debug-popup-host {
-        position: fixed;
-        right: 16px;
-        bottom: 16px;
-        z-index: 9999;
-        pointer-events: none;
-      }
-
-      #debug-popup {
-        width: 360px;
-        max-width: calc(100vw - 32px);
-        max-height: calc(100vh - 32px);
-        box-sizing: border-box;
-        padding: 12px;
-        border: 1px solid #D0D0D0;
-        background: #FFFFFF;
-        color: #000000;
-        font-size: 12px;
-        line-height: 1.4;
-        overflow: auto;
-        pointer-events: auto;
-      }
-
-      #debug-popup-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 8px;
-      }
-
-      #debug-popup-title {
-        font-size: 14px;
-        line-height: 1.2;
-        font-weight: 600;
-      }
-
-      #debug-popup-close {
-        padding: 0;
-        margin: 0;
-        border: none;
-        background: transparent;
-        color: #000000;
-        cursor: pointer;
-        font-size: 14px;
-        line-height: 1;
-      }
-
-      #debug-popup-body {
-        margin-top: 8px;
-      }
-
-      #debug-popup-body pre {
-        margin: 8px 0 0 0;
-        white-space: pre-wrap;
-        word-break: break-word;
-      }
     </style>
   </head>
   <body>
@@ -604,11 +547,12 @@
       (function() {
         var stateA = document.getElementById("state-a");
         var stateB = document.getElementById("state-b");
-        var stateARows = document.querySelectorAll("#collections-list .collection-row");
-        var stateBRows = document.querySelectorAll("#collections-list-b .collection-row");
+        var collectionsList = document.getElementById("collections-list");
+        var collectionsListB = document.getElementById("collections-list-b");
         var mastersList = document.getElementById("masters-list");
         var titleCollectionActive = document.getElementById("title-collection-active");
         var closeButton = document.getElementById("btn-close-n2");
+        var defaultCollectionTitle = titleCollectionActive.textContent;
 
         function setActiveRow(rowList, activeRow) {
           Array.prototype.forEach.call(rowList, function(row) {
@@ -622,6 +566,128 @@
           });
         }
 
+        function buildCollectionRow(item, isActive, includeFraction) {
+          var row = document.createElement("li");
+          var cellPastille = document.createElement("div");
+          var spacerLeft = document.createElement("div");
+          var pastilleBox = document.createElement("div");
+          var pastilleCircle = document.createElement("div");
+          var spacerRight = document.createElement("div");
+          var cellName = document.createElement("div");
+          var cellFraction;
+
+          row.className = "collection-row";
+          row.setAttribute("data-status", item.status);
+          row.setAttribute("data-active", isActive ? "true" : "false");
+          row.setAttribute("data-hoverable", isActive ? "false" : "true");
+          row.setAttribute("data-collection-key", item.key);
+
+          cellPastille.className = "cell-pastille";
+          spacerLeft.className = "spacer-left";
+          pastilleBox.className = "pastille-box";
+          pastilleCircle.className = "pastille-circle";
+          spacerRight.className = "spacer-right";
+          cellName.className = "cell-name";
+          cellName.textContent = item.name;
+
+          pastilleBox.appendChild(pastilleCircle);
+          cellPastille.appendChild(spacerLeft);
+          cellPastille.appendChild(pastilleBox);
+          cellPastille.appendChild(spacerRight);
+          row.appendChild(cellPastille);
+          row.appendChild(cellName);
+
+          if (includeFraction) {
+            cellFraction = document.createElement("div");
+            cellFraction.className = "cell-fraction";
+            cellFraction.textContent = item.fractionText;
+            row.appendChild(cellFraction);
+          }
+
+          return row;
+        }
+
+        function buildMasterRow(item) {
+          var row = document.createElement("li");
+          var cellPastille = document.createElement("div");
+          var spacerLeft = document.createElement("div");
+          var pastilleBox = document.createElement("div");
+          var pastilleCircle = document.createElement("div");
+          var spacerRight = document.createElement("div");
+          var cellName = document.createElement("div");
+
+          row.className = "collection-row";
+          row.setAttribute("data-status", item.status);
+          row.setAttribute("data-active", "false");
+          row.setAttribute("data-hoverable", "true");
+          row.setAttribute("data-master-key", item.key);
+
+          cellPastille.className = "cell-pastille";
+          spacerLeft.className = "spacer-left";
+          pastilleBox.className = "pastille-box";
+          pastilleCircle.className = "pastille-circle";
+          spacerRight.className = "spacer-right";
+          cellName.className = "cell-name";
+          cellName.textContent = item.name;
+
+          pastilleBox.appendChild(pastilleCircle);
+          cellPastille.appendChild(spacerLeft);
+          cellPastille.appendChild(pastilleBox);
+          cellPastille.appendChild(spacerRight);
+          row.appendChild(cellPastille);
+          row.appendChild(cellName);
+
+          return row;
+        }
+
+        function renderCollections(listElement, items, activeCollectionKey) {
+          var fragment = document.createDocumentFragment();
+
+          Array.prototype.forEach.call(items, function(item) {
+            fragment.appendChild(
+              buildCollectionRow(item, item.key === activeCollectionKey, true)
+            );
+          });
+
+          listElement.textContent = "";
+          listElement.appendChild(fragment);
+        }
+
+        function renderMasters(items) {
+          var fragment = document.createDocumentFragment();
+
+          Array.prototype.forEach.call(items, function(item) {
+            fragment.appendChild(buildMasterRow(item));
+          });
+
+          mastersList.textContent = "";
+          mastersList.appendChild(fragment);
+        }
+
+        function renderState(res) {
+          var collections;
+          var activeCollectionKey;
+          var masters;
+
+          if (!res || res.ok !== true || !res.data) {
+            return;
+          }
+
+          collections = Array.isArray(res.data.collections) ? res.data.collections : [];
+          activeCollectionKey = res.data.activeCollectionKey;
+          masters = Array.isArray(res.data.masters) ? res.data.masters : [];
+
+          renderCollections(collectionsList, collections, activeCollectionKey);
+          renderCollections(collectionsListB, collections, activeCollectionKey);
+          renderMasters(masters);
+
+          if (activeCollectionKey === null) {
+            titleCollectionActive.textContent = defaultCollectionTitle;
+          } else {
+            titleCollectionActive.textContent = activeCollectionKey;
+          }
+        }
+
         function openStateB() {
           stateA.style.display = "none";
           stateB.style.display = "flex";
@@ -632,187 +698,45 @@
           stateB.style.display = "none";
         }
 
-        function setActiveRowByKey(rowList, collectionKey) {
-          Array.prototype.forEach.call(rowList, function(row) {
-            if (row.getAttribute("data-collection-key") === collectionKey) {
-              row.setAttribute("data-active", "true");
-              row.setAttribute("data-hoverable", "false");
-            } else {
-              row.setAttribute("data-active", "false");
-              row.setAttribute("data-hoverable", "true");
-            }
-          });
+        function requestState(activeCollectionKey) {
+          google.script.run
+            .withSuccessHandler(renderState)
+            .withFailureHandler(function(){})
+            .ui_loadState({ activeCollectionKey: activeCollectionKey });
         }
 
-        function renderMasters(items) {
-          var fragment = document.createDocumentFragment();
+        collectionsList.addEventListener("click", function(event) {
+          var target = event.target;
+          var collectionKey;
 
-          mastersList.textContent = "";
-
-          Array.prototype.forEach.call(items, function(item) {
-            var row = document.createElement("li");
-            var cellPastille = document.createElement("div");
-            var spacerLeft = document.createElement("div");
-            var pastilleBox = document.createElement("div");
-            var pastilleCircle = document.createElement("div");
-            var spacerRight = document.createElement("div");
-            var cellName = document.createElement("div");
-
-            row.className = "collection-row";
-            row.setAttribute("data-status", item.status);
-            row.setAttribute("data-active", "false");
-            row.setAttribute("data-hoverable", "true");
-            row.setAttribute("data-master-key", item.key);
-
-            cellPastille.className = "cell-pastille";
-            spacerLeft.className = "spacer-left";
-            pastilleBox.className = "pastille-box";
-            pastilleCircle.className = "pastille-circle";
-            spacerRight.className = "spacer-right";
-            cellName.className = "cell-name";
-            cellName.textContent = item.name;
-
-            pastilleBox.appendChild(pastilleCircle);
-            cellPastille.appendChild(spacerLeft);
-            cellPastille.appendChild(pastilleBox);
-            cellPastille.appendChild(spacerRight);
-            row.appendChild(cellPastille);
-            row.appendChild(cellName);
-            fragment.appendChild(row);
-          });
-
-          mastersList.appendChild(fragment);
-        }
-
-        function renderLoadError() {
-          renderMasters([
-            {
-              key: "error",
-              name: "Erreur de chargement",
-              status: "neutral"
-            }
-          ]);
-        }
-
-        function showDebugPopup(title, lines, payload) {
-          var host = document.getElementById("debug-popup-host");
-          var popup;
-          var header;
-          var titleNode;
-          var closeButtonNode;
-          var body;
-          var details;
-          var pre;
-
-          if (!host) {
-            host = document.createElement("div");
-            host.id = "debug-popup-host";
-            document.body.appendChild(host);
+          while (target && target !== collectionsList && !target.classList.contains("collection-row")) {
+            target = target.parentNode;
           }
 
-          host.textContent = "";
+          if (!target || target === collectionsList) {
+            return;
+          }
 
-          popup = document.createElement("div");
-          popup.id = "debug-popup";
-
-          header = document.createElement("div");
-          header.id = "debug-popup-header";
-
-          titleNode = document.createElement("div");
-          titleNode.id = "debug-popup-title";
-          titleNode.textContent = title;
-
-          closeButtonNode = document.createElement("button");
-          closeButtonNode.id = "debug-popup-close";
-          closeButtonNode.type = "button";
-          closeButtonNode.textContent = "X";
-          closeButtonNode.addEventListener("click", function() {
-            host.textContent = "";
-          });
-
-          body = document.createElement("div");
-          body.id = "debug-popup-body";
-          details = document.createElement("div");
-          details.textContent = lines.join("\n");
-
-          pre = document.createElement("pre");
-          pre.textContent = JSON.stringify(payload, null, 2);
-
-          header.appendChild(titleNode);
-          header.appendChild(closeButtonNode);
-          body.appendChild(details);
-          body.appendChild(pre);
-          popup.appendChild(header);
-          popup.appendChild(body);
-          host.appendChild(popup);
-        }
-
-        function loadStateB(collectionKey) {
-          var payloadCollectionKey = String(collectionKey).trim().replace(/\u2019/g, "'");
-
-          google.script.run
-            .withSuccessHandler(function(res) {
-              var lines;
-
-              if (res && res.ok === true) {
-                lines = [
-                  "clicked collectionKey: " + String(collectionKey),
-                  "payloadCollectionKey: " + payloadCollectionKey,
-                  "res.ok: true",
-                  "res.data.collectionKey: " + String(res.data.collectionKey),
-                  "res.data.collectionName: " + String(res.data.collectionName),
-                  "masters length: " + String(res.data.masters.length)
-                ];
-              } else {
-                lines = [
-                  "clicked collectionKey: " + String(collectionKey),
-                  "payloadCollectionKey: " + payloadCollectionKey,
-                  "res.ok: false",
-                  "res.error.code: " + String(res && res.error ? res.error.code : ""),
-                  "res.error.message: " + String(res && res.error ? res.error.message : "")
-                ];
-              }
-
-              showDebugPopup("ui_loadStateB response", lines, res);
-
-              if (res && res.ok === true) {
-                titleCollectionActive.textContent = res.data.collectionName;
-                renderMasters(res.data.masters);
-                return;
-              }
-
-              renderLoadError();
-            })
-            .withFailureHandler(function(err) {
-              showDebugPopup("FAILURE", [
-                "clicked collectionKey: " + String(collectionKey),
-                "payloadCollectionKey: " + payloadCollectionKey
-              ], err);
-              renderLoadError();
-            })
-            .ui_loadStateB({ collectionKey: payloadCollectionKey });
-        }
-
-        Array.prototype.forEach.call(stateARows, function(row, index) {
-          row.addEventListener("click", function() {
-            var collectionKey = row.getAttribute("data-collection-key");
-
-            setActiveRow(stateARows, row);
-            setActiveRowByKey(stateBRows, collectionKey);
-            openStateB();
-            loadStateB(collectionKey);
-          });
+          collectionKey = target.getAttribute("data-collection-key");
+          openStateB();
+          requestState(collectionKey);
         });
 
-        Array.prototype.forEach.call(stateBRows, function(row) {
-          row.addEventListener("click", function() {
-            var collectionKey = row.getAttribute("data-collection-key");
+        collectionsListB.addEventListener("click", function(event) {
+          var target = event.target;
+          var collectionKey;
 
-            setActiveRow(stateBRows, row);
-            setActiveRowByKey(stateARows, collectionKey);
-            openStateB();
-            loadStateB(collectionKey);
-          });
+          while (target && target !== collectionsListB && !target.classList.contains("collection-row")) {
+            target = target.parentNode;
+          }
+
+          if (!target || target === collectionsListB) {
+            return;
+          }
+
+          collectionKey = target.getAttribute("data-collection-key");
+          openStateB();
+          requestState(collectionKey);
         });
 
         mastersList.addEventListener("click", function(event) {
@@ -832,6 +756,8 @@
         closeButton.addEventListener("click", function() {
           closeStateB();
         });
+
+        requestState(null);
       })();
     </script>
   </body>
