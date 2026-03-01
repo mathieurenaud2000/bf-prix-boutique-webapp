@@ -191,6 +191,100 @@
         overflow: hidden;
         text-overflow: ellipsis;
       }
+
+      #state-b {
+        display: none;
+        flex-direction: row;
+        width: 100%;
+        height: 100vh;
+        overflow: hidden;
+        box-sizing: border-box;
+      }
+
+      #state-b .panel-n1 {
+        flex: 0 0 35%;
+        max-width: 35%;
+        min-width: 35%;
+        height: 100%;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+      }
+
+      #state-b .panel-n2 {
+        flex: 0 0 65%;
+        max-width: 65%;
+        min-width: 65%;
+        height: 100%;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+      }
+
+      #state-b .panel-n1,
+      #state-b .panel-n2 {
+        overflow: hidden;
+      }
+
+      #state-b .panel-inner {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        padding: 24px;
+        box-sizing: border-box;
+        overflow: hidden;
+      }
+
+      #state-b .header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        flex: 0 0 auto;
+      }
+
+      #state-b .header-divider {
+        flex: 0 0 auto;
+      }
+
+      #state-b .list-wrapper {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+      }
+
+      #state-b ul#collections-list-b {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      #state-b ul#masters-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      #state-b #btn-close-n2 {
+        font-size: 16px;
+        line-height: 1;
+        height: auto;
+        padding: 0;
+        margin: 0;
+        border: none;
+        background: transparent;
+        color: #000000;
+        cursor: pointer;
+        box-sizing: border-box;
+        -webkit-appearance: none;
+        appearance: none;
+      }
+
+      #state-b #title-collection-active {
+        color: #000000;
+        font-size: 24px;
+        line-height: normal;
+        padding: 0;
+      }
     </style>
   </head>
   <body>
@@ -280,13 +374,180 @@
           </div>
         </div>
       </div>
+      <div id="state-b">
+        <div class="panel-n1">
+          <div class="panel-inner">
+            <div class="header-row">
+              <div class="header-left">
+                <h1 id="title-collections-b">Collections</h1>
+              </div>
+              <div class="header-right">
+                <h1 id="title-tool-b">Outil de mise à jour de prix</h1>
+              </div>
+            </div>
+            <div class="header-divider"></div>
+            <div class="list-wrapper">
+              <ul id="collections-list-b">
+                <li class="collection-row" data-status="ok" data-active="false" data-hoverable="true">
+                  <div class="cell-pastille">
+                    <div class="spacer-left"></div>
+                    <div class="pastille-box">
+                      <div class="pastille-circle"></div>
+                    </div>
+                    <div class="spacer-right"></div>
+                  </div>
+                  <div class="cell-name">Perle</div>
+                  <div class="cell-fraction">2 / 10</div>
+                </li>
+                <li class="collection-row" data-status="neutral" data-active="false" data-hoverable="true">
+                  <div class="cell-pastille">
+                    <div class="spacer-left"></div>
+                    <div class="pastille-box">
+                      <div class="pastille-circle"></div>
+                    </div>
+                    <div class="spacer-right"></div>
+                  </div>
+                  <div class="cell-name">Perle d’Eau Douce</div>
+                  <div class="cell-fraction">0 / 12</div>
+                </li>
+                <li class="collection-row" data-status="problem" data-active="false" data-hoverable="true">
+                  <div class="cell-pastille">
+                    <div class="spacer-left"></div>
+                    <div class="pastille-box">
+                      <div class="pastille-circle"></div>
+                    </div>
+                    <div class="spacer-right"></div>
+                  </div>
+                  <div class="cell-name">Océan</div>
+                  <div class="cell-fraction">1 / 8</div>
+                </li>
+                <li class="collection-row" data-status="neutral" data-active="false" data-hoverable="true">
+                  <div class="cell-pastille">
+                    <div class="spacer-left"></div>
+                    <div class="pastille-box">
+                      <div class="pastille-circle"></div>
+                    </div>
+                    <div class="spacer-right"></div>
+                  </div>
+                  <div class="cell-name">Douce Mémoire</div>
+                  <div class="cell-fraction">4 / 9</div>
+                </li>
+                <li class="collection-row" data-status="ok" data-active="false" data-hoverable="true">
+                  <div class="cell-pastille">
+                    <div class="spacer-left"></div>
+                    <div class="pastille-box">
+                      <div class="pastille-circle"></div>
+                    </div>
+                    <div class="spacer-right"></div>
+                  </div>
+                  <div class="cell-name">Souvenir</div>
+                  <div class="cell-fraction">3 / 7</div>
+                </li>
+                <li class="collection-row" data-status="neutral" data-active="false" data-hoverable="true">
+                  <div class="cell-pastille">
+                    <div class="spacer-left"></div>
+                    <div class="pastille-box">
+                      <div class="pastille-circle"></div>
+                    </div>
+                    <div class="spacer-right"></div>
+                  </div>
+                  <div class="cell-name">Héritage</div>
+                  <div class="cell-fraction">0 / 5</div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="panel-n2">
+          <div class="panel-inner">
+            <div class="header-row">
+              <div class="header-left">
+                <h1 id="title-collection-active">Collection</h1>
+              </div>
+              <div class="header-right">
+                <button id="btn-close-n2" type="button">Fermer</button>
+              </div>
+            </div>
+            <div class="header-divider"></div>
+            <div class="list-wrapper">
+              <ul id="masters-list">
+                <li class="collection-row" data-status="neutral" data-active="false" data-hoverable="true">
+                  <div class="cell-pastille">
+                    <div class="spacer-left"></div>
+                    <div class="pastille-box">
+                      <div class="pastille-circle"></div>
+                    </div>
+                    <div class="spacer-right"></div>
+                  </div>
+                  <div class="cell-name">Prix</div>
+                </li>
+                <li class="collection-row" data-status="neutral" data-active="false" data-hoverable="true">
+                  <div class="cell-pastille">
+                    <div class="spacer-left"></div>
+                    <div class="pastille-box">
+                      <div class="pastille-circle"></div>
+                    </div>
+                    <div class="spacer-right"></div>
+                  </div>
+                  <div class="cell-name">Métaux</div>
+                </li>
+                <li class="collection-row" data-status="neutral" data-active="false" data-hoverable="true">
+                  <div class="cell-pastille">
+                    <div class="spacer-left"></div>
+                    <div class="pastille-box">
+                      <div class="pastille-circle"></div>
+                    </div>
+                    <div class="spacer-right"></div>
+                  </div>
+                  <div class="cell-name">Chaînes</div>
+                </li>
+                <li class="collection-row" data-status="neutral" data-active="false" data-hoverable="true">
+                  <div class="cell-pastille">
+                    <div class="spacer-left"></div>
+                    <div class="pastille-box">
+                      <div class="pastille-circle"></div>
+                    </div>
+                    <div class="spacer-right"></div>
+                  </div>
+                  <div class="cell-name">Boîtes</div>
+                </li>
+                <li class="collection-row" data-status="neutral" data-active="false" data-hoverable="true">
+                  <div class="cell-pastille">
+                    <div class="spacer-left"></div>
+                    <div class="pastille-box">
+                      <div class="pastille-circle"></div>
+                    </div>
+                    <div class="spacer-right"></div>
+                  </div>
+                  <div class="cell-name">Frais</div>
+                </li>
+                <li class="collection-row" data-status="neutral" data-active="false" data-hoverable="true">
+                  <div class="cell-pastille">
+                    <div class="spacer-left"></div>
+                    <div class="pastille-box">
+                      <div class="pastille-circle"></div>
+                    </div>
+                    <div class="spacer-right"></div>
+                  </div>
+                  <div class="cell-name">Résumé</div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     <script>
       (function() {
-        var rows = document.querySelectorAll(".collection-row");
+        var stateA = document.getElementById("state-a");
+        var stateB = document.getElementById("state-b");
+        var stateARows = document.querySelectorAll("#collections-list .collection-row");
+        var stateBRows = document.querySelectorAll("#collections-list-b .collection-row");
+        var masterRows = document.querySelectorAll("#masters-list .collection-row");
+        var closeButton = document.getElementById("btn-close-n2");
 
-        function setActiveRow(activeRow) {
-          Array.prototype.forEach.call(rows, function(row) {
+        function setActiveRow(rowList, activeRow) {
+          Array.prototype.forEach.call(rowList, function(row) {
             if (row === activeRow) {
               row.setAttribute("data-active", "true");
               row.setAttribute("data-hoverable", "false");
@@ -297,10 +558,38 @@
           });
         }
 
-        Array.prototype.forEach.call(rows, function(row) {
+        function openStateB() {
+          stateA.style.display = "none";
+          stateB.style.display = "flex";
+        }
+
+        function closeStateB() {
+          stateA.style.display = "block";
+          stateB.style.display = "none";
+        }
+
+        Array.prototype.forEach.call(stateARows, function(row, index) {
           row.addEventListener("click", function() {
-            setActiveRow(row);
+            setActiveRow(stateARows, row);
+            setActiveRow(stateBRows, stateBRows[index]);
+            openStateB();
           });
+        });
+
+        Array.prototype.forEach.call(stateBRows, function(row) {
+          row.addEventListener("click", function() {
+            setActiveRow(stateBRows, row);
+          });
+        });
+
+        Array.prototype.forEach.call(masterRows, function(row) {
+          row.addEventListener("click", function() {
+            setActiveRow(masterRows, row);
+          });
+        });
+
+        closeButton.addEventListener("click", function() {
+          closeStateB();
         });
       })();
     </script>
