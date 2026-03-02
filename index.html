@@ -55,7 +55,7 @@
         --base: calc(var(--wu) - var(--gap));
         --w30: calc(var(--base) * var(--split-left) / 100);
         --w70: calc(var(--base) * var(--split-right) / 100);
-        --t: 300ms;
+        --t: 1000ms;
         --ease: ease;
         position: relative;
         width: 100%;
@@ -71,7 +71,10 @@
       #state-a,
       #state-b {
         position: absolute;
-        inset: 0;
+        top: 0;
+        right: var(--mr);
+        bottom: 0;
+        left: var(--ml);
       }
 
       #state-a {
@@ -278,7 +281,7 @@
         z-index: 2;
         flex-direction: row;
         gap: var(--gap);
-        width: 100%;
+        width: auto;
         height: auto;
         box-sizing: border-box;
         overflow: visible;
@@ -387,6 +390,10 @@
 
       #app-root.is-transitioning {
         pointer-events: none;
+      }
+
+      #app-root.is-transitioning #title-tool {
+        visibility: hidden;
       }
 
       #app-root.is-overlay-mode #state-a {
@@ -1089,7 +1096,7 @@
               ui_setBStage_("is-b-stable");
               ui_endTransition(token);
             });
-          }, 300);
+          }, 1000);
         }
 
         function ui_closeB_toA() {
@@ -1133,7 +1140,7 @@
               renderFromCache_();
               ui_endTransition(token);
             });
-          }, 300);
+          }, 1000);
         }
 
         function ui_openC_fromB(masterId) {
