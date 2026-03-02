@@ -464,10 +464,10 @@
       }
 
       #state-b.is-b-close .panel-n2 {
-        flex-basis: 0;
-        min-width: 0;
-        max-width: 0;
-        overflow: hidden;
+        flex-basis: var(--w70);
+        min-width: var(--w70);
+        max-width: var(--w70);
+        overflow: visible;
       }
 
       #state-b.is-b-anim .panel-n1,
@@ -1109,7 +1109,6 @@
           }
 
           token = ui_beginTransition();
-          stateA.style.display = "block";
           stateB.style.display = "flex";
           ui_setBStage_("is-b-stable");
 
