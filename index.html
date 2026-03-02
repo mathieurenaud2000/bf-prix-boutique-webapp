@@ -1070,6 +1070,7 @@
           stateA.style.display = "block";
           stateB.style.display = "flex";
           ui_setBStage_("is-b-pre");
+          stateA.style.display = "none";
 
           requestAnimationFrame(function() {
             if (token !== transitionId) {
@@ -1089,7 +1090,6 @@
                 return;
               }
 
-              stateA.style.display = "none";
               stateB.style.display = "flex";
               ui_setBStage_("is-b-stable");
               ui_endTransition(token);
