@@ -779,6 +779,7 @@
         var closeButton = document.getElementById("btn-close-n2");
         var defaultCollectionTitle = titleCollectionActive.textContent;
         var appRoot = document.getElementById("app-root");
+        var UI_T_MS = 600;
         var uiCache = null;
         var activeCollectionKey = null;
         var UI_IS_TRANSITIONING = false;
@@ -1125,7 +1126,7 @@
               ui_setBStage_("is-b-stable");
               ui_endTransition(token);
             });
-          }, 1000);
+          }, UI_T_MS);
         }
 
         function ui_closeB_toA() {
@@ -1169,7 +1170,7 @@
               renderActiveCollectionView_();
               ui_endTransition(token);
             });
-          }, 1000);
+          }, UI_T_MS);
         }
 
         function ui_openC_fromB(masterId) {
@@ -1260,6 +1261,7 @@
         }
 
         appRoot.classList.add("is-overlay-mode");
+        appRoot.style.setProperty("--t", UI_T_MS + "ms");
         stateA.style.display = "block";
         stateB.style.display = "none";
         ui_clearBStageClasses_();
