@@ -132,6 +132,8 @@
         font-weight: 300;
         padding: 0;
         white-space: nowrap;
+        opacity: 1;
+        transition: opacity var(--t) var(--ease);
       }
 
       .header-divider {
@@ -393,7 +395,8 @@
       }
 
       #app-root.is-transitioning #title-tool {
-        visibility: hidden;
+        opacity: 0;
+        transition: none;
       }
 
       #app-root.is-overlay-mode #state-a {
