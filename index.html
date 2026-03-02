@@ -93,7 +93,9 @@
         padding: 0;
       }
 
-      #title-collections {
+      #title-collections,
+      #title-collections-b,
+      #title-collection-active {
         color: #000000;
         font-size: 24px;
         line-height: normal;
@@ -111,10 +113,10 @@
       }
 
       .header-divider {
-        height: 1px;
+        height: 2px;
         margin: 0;
         padding: 0;
-        background: #e6e6e6;
+        background: #000000;
       }
 
       .list-wrapper {
@@ -123,6 +125,40 @@
         padding: 0;
         overflow-y: auto;
         overflow-x: hidden;
+      }
+
+      #initial-load-spinner {
+        display: none;
+        width: 160px;
+        height: 160px;
+        border-radius: 50%;
+        border: 16px solid #FFFFFF;
+        border-top-color: #f2f2f2;
+        animation: initial-load-spin 0.9s linear infinite;
+      }
+
+      #state-a[data-loading="true"] .list-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #state-a[data-loading="true"] #initial-load-spinner {
+        display: block;
+      }
+
+      #state-a[data-loading="true"] #collections-list {
+        display: none;
+      }
+
+      @keyframes initial-load-spin {
+        from {
+          transform: rotate(0deg);
+        }
+
+        to {
+          transform: rotate(360deg);
+        }
       }
 
       .collection-row {
@@ -140,10 +176,6 @@
 
       .collection-row[data-active="true"] {
         background: #FFFFFF;
-      }
-
-      .collection-row[data-dimmed="true"] .cell-name {
-        color: #cccccc;
       }
 
       .cell-pastille {
@@ -279,6 +311,15 @@
         overflow: visible;
       }
 
+      .footer-divider {
+        width: 100%;
+        height: 2px;
+        margin: 0;
+        padding: 0;
+        background: #000000;
+        flex: 0 0 auto;
+      }
+
       #state-b ul#collections-list-b {
         list-style: none;
         margin: 0;
@@ -310,22 +351,43 @@
         color: #d92d20;
       }
 
-      .material-symbols-outlined {
-        vertical-align: middle;
+      #state-b #title-tool-b {
+        display: none;
       }
 
-      #state-b #title-collection-active {
+      #state-a .collection-row[data-active="true"] .cell-name {
         color: #000000;
-        font-size: 24px;
-        line-height: normal;
-        font-weight: 400;
-        padding: 0;
+      }
+
+      #collections-list[data-has-selection="true"] .collection-row[data-active="false"] .cell-name {
+        color: #cccccc;
+      }
+
+      #state-a .collection-row[data-hoverable="true"]:hover .cell-name {
+        color: #000000;
+      }
+
+      #state-b .collection-row[data-active="true"] .cell-name {
+        color: #000000;
+      }
+
+      #collections-list-b[data-has-selection="true"] .collection-row[data-active="false"] .cell-name,
+      #masters-list[data-has-selection="true"] .collection-row[data-active="false"] .cell-name {
+        color: #cccccc;
+      }
+
+      #state-b .collection-row[data-hoverable="true"]:hover .cell-name {
+        color: #000000;
+      }
+
+      .material-symbols-outlined {
+        vertical-align: middle;
       }
     </style>
   </head>
   <body>
     <div id="app-root">
-      <div id="state-a">
+      <div id="state-a" data-loading="true">
         <div class="panel-n1">
           <div class="panel-inner">
             <div class="header-row">
@@ -338,6 +400,7 @@
             </div>
             <div class="header-divider"></div>
             <div class="list-wrapper">
+              <div id="initial-load-spinner" aria-hidden="true"></div>
               <ul id="collections-list">
                 <li class="collection-row" data-status="ok" data-active="false" data-hoverable="true" data-collection-key="Perle">
                   <div class="cell-pastille">
@@ -407,6 +470,7 @@
                 </li>
               </ul>
             </div>
+            <div class="footer-divider"></div>
           </div>
         </div>
       </div>
@@ -492,6 +556,7 @@
                 </li>
               </ul>
             </div>
+            <div class="footer-divider"></div>
           </div>
         </div>
         <div class="panel-n2">
@@ -571,6 +636,7 @@
                 </li>
               </ul>
             </div>
+            <div class="footer-divider"></div>
           </div>
         </div>
       </div>
@@ -585,20 +651,25 @@
         var titleCollectionActive = document.getElementById("title-collection-active");
         var closeButton = document.getElementById("btn-close-n2");
         var defaultCollectionTitle = titleCollectionActive.textContent;
-        var currentCollections = [];
+        var uiCache = null;
+        var activeCollectionKey = null;
 
         function setActiveRow(rowList, activeRow) {
+          var listElement = rowList.length > 0 ? rowList[0].parentNode : null;
+
           Array.prototype.forEach.call(rowList, function(row) {
             if (row === activeRow) {
               row.setAttribute("data-active", "true");
               row.setAttribute("data-hoverable", "false");
-              row.setAttribute("data-dimmed", "false");
             } else {
               row.setAttribute("data-active", "false");
               row.setAttribute("data-hoverable", "true");
-              row.setAttribute("data-dimmed", activeRow ? "true" : "false");
             }
           });
+
+          if (listElement) {
+            updateListSelectionState(listElement, !!activeRow);
+          }
         }
 
         function toTitleCaseDisplay_(value) {
@@ -611,7 +682,11 @@
           }).join(" ");
         }
 
-        function buildCollectionRow(item, isActive, includeFraction, hasActiveSelection) {
+        function updateListSelectionState(listElement, hasSelection) {
+          listElement.setAttribute("data-has-selection", hasSelection ? "true" : "false");
+        }
+
+        function buildCollectionRow(item, isActive, includeFraction) {
           var row = document.createElement("li");
           var cellPastille = document.createElement("div");
           var spacerLeft = document.createElement("div");
@@ -625,7 +700,6 @@
           row.setAttribute("data-status", item.status);
           row.setAttribute("data-active", isActive ? "true" : "false");
           row.setAttribute("data-hoverable", isActive ? "false" : "true");
-          row.setAttribute("data-dimmed", hasActiveSelection && !isActive ? "true" : "false");
           row.setAttribute("data-collection-key", item.key);
 
           cellPastille.className = "cell-pastille";
@@ -666,7 +740,6 @@
           row.setAttribute("data-status", item.status);
           row.setAttribute("data-active", "false");
           row.setAttribute("data-hoverable", "true");
-          row.setAttribute("data-dimmed", "false");
           row.setAttribute("data-master-key", item.key);
 
           cellPastille.className = "cell-pastille";
@@ -693,12 +766,13 @@
 
           Array.prototype.forEach.call(items, function(item) {
             fragment.appendChild(
-              buildCollectionRow(item, item.key === activeCollectionKey, true, hasActiveSelection)
+              buildCollectionRow(item, item.key === activeCollectionKey, true)
             );
           });
 
           listElement.textContent = "";
           listElement.appendChild(fragment);
+          updateListSelectionState(listElement, hasActiveSelection);
         }
 
         function renderMasters(items) {
@@ -710,31 +784,76 @@
 
           mastersList.textContent = "";
           mastersList.appendChild(fragment);
+          updateListSelectionState(mastersList, false);
         }
 
-        function renderState(res) {
-          var collections;
-          var activeCollectionKey;
+        function getActiveCollectionItem_() {
+          var i;
+
+          if (!uiCache || !Array.isArray(uiCache.collections) || activeCollectionKey === null) {
+            return null;
+          }
+
+          for (i = 0; i < uiCache.collections.length; i += 1) {
+            if (uiCache.collections[i].key === activeCollectionKey) {
+              return uiCache.collections[i];
+            }
+          }
+
+          return null;
+        }
+
+        function renderFromCache_() {
+          var activeCollectionItem;
           var masters;
 
-          if (!res || res.ok !== true || !res.data) {
+          if (
+            !uiCache ||
+            !Array.isArray(uiCache.collections) ||
+            !uiCache.mastersByCollection ||
+            typeof uiCache.mastersByCollection !== "object"
+          ) {
             return;
           }
 
-          collections = Array.isArray(res.data.collections) ? res.data.collections : [];
-          activeCollectionKey = res.data.activeCollectionKey;
-          masters = Array.isArray(res.data.masters) ? res.data.masters : [];
-          currentCollections = collections;
-
-          renderCollections(collectionsList, collections, activeCollectionKey);
-          renderCollections(collectionsListB, collections, activeCollectionKey);
-          renderMasters(masters);
+          renderCollections(collectionsList, uiCache.collections, activeCollectionKey);
+          renderCollections(collectionsListB, uiCache.collections, activeCollectionKey);
 
           if (activeCollectionKey === null) {
+            masters = [];
             titleCollectionActive.textContent = defaultCollectionTitle;
           } else {
-            titleCollectionActive.textContent = toTitleCaseDisplay_(activeCollectionKey);
+            masters = Array.isArray(uiCache.mastersByCollection[activeCollectionKey])
+              ? uiCache.mastersByCollection[activeCollectionKey]
+              : [];
+            activeCollectionItem = getActiveCollectionItem_();
+            titleCollectionActive.textContent = activeCollectionItem
+              ? toTitleCaseDisplay_(activeCollectionItem.name)
+              : toTitleCaseDisplay_(activeCollectionKey);
           }
+
+          renderMasters(masters);
+        }
+
+        function handleInitialStateLoad_(res) {
+          if (
+            !res ||
+            res.ok !== true ||
+            !res.data ||
+            !Array.isArray(res.data.collections) ||
+            !res.data.mastersByCollection ||
+            typeof res.data.mastersByCollection !== "object"
+          ) {
+            return;
+          }
+
+          uiCache = {
+            collections: res.data.collections,
+            mastersByCollection: res.data.mastersByCollection
+          };
+          activeCollectionKey = null;
+          renderFromCache_();
+          stateA.setAttribute("data-loading", "false");
         }
 
         function openStateB() {
@@ -745,22 +864,13 @@
         function closeStateB() {
           stateA.style.display = "block";
           stateB.style.display = "none";
-          renderCollections(collectionsList, currentCollections, null);
-          renderCollections(collectionsListB, currentCollections, null);
-          setActiveRow(mastersList.querySelectorAll(".collection-row"), null);
-          titleCollectionActive.textContent = defaultCollectionTitle;
-        }
-
-        function requestState(activeCollectionKey) {
-          google.script.run
-            .withSuccessHandler(renderState)
-            .withFailureHandler(function(){})
-            .ui_loadState({ activeCollectionKey: activeCollectionKey });
+          activeCollectionKey = null;
+          renderFromCache_();
         }
 
         collectionsList.addEventListener("click", function(event) {
           var target = event.target;
-          var collectionKey;
+          var collectionKey = null;
 
           while (target && target !== collectionsList && !target.classList.contains("collection-row")) {
             target = target.parentNode;
@@ -771,13 +881,18 @@
           }
 
           collectionKey = target.getAttribute("data-collection-key");
+          if (!uiCache || !uiCache.mastersByCollection) {
+            return;
+          }
+
+          activeCollectionKey = collectionKey;
           openStateB();
-          requestState(collectionKey);
+          renderFromCache_();
         });
 
         collectionsListB.addEventListener("click", function(event) {
           var target = event.target;
-          var collectionKey;
+          var collectionKey = null;
 
           while (target && target !== collectionsListB && !target.classList.contains("collection-row")) {
             target = target.parentNode;
@@ -788,8 +903,13 @@
           }
 
           collectionKey = target.getAttribute("data-collection-key");
+          if (!uiCache || !uiCache.mastersByCollection) {
+            return;
+          }
+
+          activeCollectionKey = collectionKey;
           openStateB();
-          requestState(collectionKey);
+          renderFromCache_();
         });
 
         mastersList.addEventListener("click", function(event) {
@@ -810,7 +930,10 @@
           closeStateB();
         });
 
-        requestState(null);
+        google.script.run
+          .withSuccessHandler(handleInitialStateLoad_)
+          .withFailureHandler(function(){})
+          .ui_loadState({ activeCollectionKey: null });
       })();
     </script>
   </body>

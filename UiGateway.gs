@@ -25,17 +25,11 @@ function safeArray_(value) {
 }
 
 function ui_loadState(payload) {
-  var requestedKey =
-    payload && payload.activeCollectionKey !== null && typeof payload.activeCollectionKey !== "undefined"
-      ? String(payload.activeCollectionKey)
-      : null;
   var loadAllResult = api_loadAll();
   var statuses;
   var sourceCollections;
   var mastersByCollection;
   var collections;
-  var mastersForCollection;
-  var masters;
 
   if (loadAllResult.ok !== true) {
     return loadAllResult;
@@ -63,25 +57,20 @@ function ui_loadState(payload) {
     };
   });
 
-  if (requestedKey === null) {
-    masters = [];
-  } else {
-    mastersForCollection = safeArray_(mastersByCollection[requestedKey]);
-    masters = mastersForCollection.map(function(master) {
-      return {
-        key: String(master.id_master),
-        name: String(master.nom || ""),
-        status: mapStatus_(master.status)
-      };
-    });
-  }
-
   return {
     ok: true,
     data: {
       collections: collections,
-      activeCollectionKey: requestedKey,
-      masters: masters
+      mastersByCollection: Object.keys(mastersByCollection).reduce(function(result, collectionKey) {
+        result[String(collectionKey)] = safeArray_(mastersByCollection[collectionKey]).map(function(master) {
+          return {
+            key: String(master.id_master),
+            name: String(master.nom || ""),
+            status: mapStatus_(master.status)
+          };
+        });
+        return result;
+      }, {})
     }
   };
 }
