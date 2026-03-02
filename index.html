@@ -984,6 +984,24 @@
           updateListSelectionState(mastersList, false);
         }
 
+        function applyCollectionSelectionState_(nextActiveCollectionKey) {
+          var listElements = [collectionsList, collectionsListB];
+
+          listElements.forEach(function(listElement) {
+            var rows = listElement.querySelectorAll(".collection-row");
+            var hasSelection = nextActiveCollectionKey !== null && typeof nextActiveCollectionKey !== "undefined";
+
+            Array.prototype.forEach.call(rows, function(row) {
+              var isActive = row.getAttribute("data-collection-key") === nextActiveCollectionKey;
+
+              row.setAttribute("data-active", isActive ? "true" : "false");
+              row.setAttribute("data-hoverable", isActive ? "false" : "true");
+            });
+
+            updateListSelectionState(listElement, hasSelection);
+          });
+        }
+
         function getActiveCollectionItem_() {
           var i;
 
@@ -1000,7 +1018,7 @@
           return null;
         }
 
-        function renderFromCache_() {
+        function renderActiveCollectionView_() {
           var activeCollectionItem;
           var masters;
 
@@ -1012,9 +1030,6 @@
           ) {
             return;
           }
-
-          renderCollections(collectionsList, uiCache.collections, activeCollectionKey);
-          renderCollections(collectionsListB, uiCache.collections, activeCollectionKey);
 
           if (activeCollectionKey === null) {
             masters = [];
@@ -1030,6 +1045,21 @@
           }
 
           renderMasters(masters);
+        }
+
+        function renderFromCache_() {
+          if (
+            !uiCache ||
+            !Array.isArray(uiCache.collections) ||
+            !uiCache.mastersByCollection ||
+            typeof uiCache.mastersByCollection !== "object"
+          ) {
+            return;
+          }
+
+          renderCollections(collectionsList, uiCache.collections, activeCollectionKey);
+          renderCollections(collectionsListB, uiCache.collections, activeCollectionKey);
+          renderActiveCollectionView_();
           ui_scheduleHeightSync_();
         }
 
@@ -1071,6 +1101,7 @@
           stateB.style.display = "flex";
           ui_setBStage_("is-b-pre");
           stateA.style.display = "none";
+          renderActiveCollectionView_();
 
           requestAnimationFrame(function() {
             if (token !== transitionId) {
@@ -1109,6 +1140,8 @@
           }
 
           token = ui_beginTransition();
+          activeCollectionKey = null;
+          applyCollectionSelectionState_(activeCollectionKey);
           stateB.style.display = "flex";
           ui_setBStage_("is-b-stable");
 
@@ -1133,8 +1166,7 @@
               stateB.style.display = "none";
               ui_clearBStageClasses_();
               stateA.style.display = "block";
-              activeCollectionKey = null;
-              renderFromCache_();
+              renderActiveCollectionView_();
               ui_endTransition(token);
             });
           }, 1000);
@@ -1174,8 +1206,11 @@
           }
 
           activeCollectionKey = collectionKey;
+          applyCollectionSelectionState_(null);
           openStateB();
-          renderFromCache_();
+          requestAnimationFrame(function() {
+            applyCollectionSelectionState_(activeCollectionKey);
+          });
         });
 
         collectionsListB.addEventListener("click", function(event) {
@@ -1196,8 +1231,8 @@
           }
 
           activeCollectionKey = collectionKey;
-          openStateB();
-          renderFromCache_();
+          applyCollectionSelectionState_(activeCollectionKey);
+          renderActiveCollectionView_();
         });
 
         mastersList.addEventListener("click", function(event) {
