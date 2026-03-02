@@ -46,6 +46,18 @@
       }
 
       #app-root {
+        --ml: var(--ui-gutter-x);
+        --mr: var(--ui-gutter-x);
+        --gap: var(--ui-gutter-x);
+        --split-left: 30;
+        --split-right: 70;
+        --wu: 100%;
+        --base: calc(var(--wu) - var(--gap));
+        --w30: calc(var(--base) * var(--split-left) / 100);
+        --w70: calc(var(--base) * var(--split-right) / 100);
+        --t: 300ms;
+        --ease: ease;
+        position: relative;
         width: 100%;
         height: auto;
         box-sizing: border-box;
@@ -56,7 +68,14 @@
         font-family: "Roboto", sans-serif;
       }
 
+      #state-a,
+      #state-b {
+        position: absolute;
+        inset: 0;
+      }
+
       #state-a {
+        z-index: 1;
         height: 100vh;
         overflow-x: hidden;
       }
@@ -168,6 +187,8 @@
         display: flex;
         align-items: center;
         cursor: pointer;
+        color: #000000;
+        transition: color var(--t) var(--ease);
       }
 
       .collection-row[data-active="false"][data-hoverable="true"]:hover {
@@ -231,7 +252,7 @@
         min-width: 0;
         margin: 0;
         padding: 0;
-        color: #000000;
+        color: inherit;
         font-size: 16px;
         line-height: 16px;
         white-space: nowrap;
@@ -254,35 +275,44 @@
 
       #state-b {
         display: none;
+        z-index: 2;
         flex-direction: row;
-        gap: var(--ui-gutter-x);
+        gap: var(--gap);
         width: 100%;
         height: auto;
         box-sizing: border-box;
         overflow: visible;
         overflow-x: hidden;
+        transform: translateX(0);
+        transition: transform var(--t) var(--ease);
       }
 
       #state-b .panel-n1 {
-        flex: 0 0 calc((100% - var(--ui-gutter-x)) * 0.35);
-        max-width: calc((100% - var(--ui-gutter-x)) * 0.35);
-        min-width: calc((100% - var(--ui-gutter-x)) * 0.35);
+        flex-grow: 0;
+        flex-shrink: 0;
         height: auto;
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
         overflow: visible;
+        transition:
+          flex-basis var(--t) var(--ease),
+          min-width var(--t) var(--ease),
+          max-width var(--t) var(--ease);
       }
 
       #state-b .panel-n2 {
-        flex: 0 0 calc((100% - var(--ui-gutter-x)) * 0.65);
-        max-width: calc((100% - var(--ui-gutter-x)) * 0.65);
-        min-width: calc((100% - var(--ui-gutter-x)) * 0.65);
+        flex-grow: 0;
+        flex-shrink: 0;
         height: auto;
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
         overflow: visible;
+        transition:
+          flex-basis var(--t) var(--ease),
+          min-width var(--t) var(--ease),
+          max-width var(--t) var(--ease);
       }
 
       #state-b .panel-inner {
@@ -355,28 +385,120 @@
         display: none;
       }
 
-      #state-a .collection-row[data-active="true"] .cell-name {
+      #app-root.is-transitioning {
+        pointer-events: none;
+      }
+
+      #app-root.is-overlay-mode #state-a {
+        height: auto;
+        overflow: visible;
+      }
+
+      #app-root.is-overlay-mode #state-b {
+        overflow: visible;
+      }
+
+      #app-root.is-overlay-mode #state-a .panel-n1,
+      #app-root.is-overlay-mode #state-b .panel-n1,
+      #app-root.is-overlay-mode #state-b .panel-n2 {
+        height: auto;
+        min-height: 0;
+        overflow: visible;
+      }
+
+      #app-root.is-overlay-mode #state-a .panel-inner,
+      #app-root.is-overlay-mode #state-b .panel-inner {
+        height: auto;
+        min-height: 0;
+        overflow: visible;
+      }
+
+      #app-root.is-overlay-mode #state-a .list-wrapper,
+      #app-root.is-overlay-mode #state-b .list-wrapper {
+        height: auto;
+        overflow: visible;
+      }
+
+      #state-b.is-b-pre,
+      #state-b.is-b-anim,
+      #state-b.is-b-stable,
+      #state-b.is-b-close {
+        display: flex;
+      }
+
+      #state-b.is-b-pre {
+        transform: translateX(100%);
+        gap: 0;
+      }
+
+      #state-b.is-b-anim,
+      #state-b.is-b-stable {
+        transform: translateX(0);
+        gap: var(--gap);
+      }
+
+      #state-b.is-b-close {
+        transform: translateX(100%);
+        gap: 0;
+      }
+
+      #state-b.is-b-pre .panel-n1,
+      #state-b.is-b-close .panel-n1 {
+        flex-basis: 100%;
+        min-width: 100%;
+        max-width: 100%;
+      }
+
+      #state-b.is-b-pre .panel-n2,
+      #state-b.is-b-close .panel-n2 {
+        flex-basis: 0;
+        min-width: 0;
+        max-width: 0;
+        overflow: hidden;
+      }
+
+      #state-b.is-b-anim .panel-n1,
+      #state-b.is-b-stable .panel-n1 {
+        flex-basis: var(--w30);
+        min-width: var(--w30);
+        max-width: var(--w30);
+      }
+
+      #state-b.is-b-anim .panel-n2,
+      #state-b.is-b-stable .panel-n2 {
+        flex-basis: var(--w70);
+        min-width: var(--w70);
+        max-width: var(--w70);
+        overflow: visible;
+      }
+
+      #state-b:not(.is-b-stable) #btn-close-n2 {
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      #state-a .collection-row[data-active="true"] {
         color: #000000;
       }
 
-      #collections-list[data-has-selection="true"] .collection-row[data-active="false"] .cell-name {
+      #collections-list[data-has-selection="true"] .collection-row[data-active="false"] {
         color: #cccccc;
       }
 
-      #state-a .collection-row[data-hoverable="true"]:hover .cell-name {
+      #state-a .collection-row[data-hoverable="true"]:hover {
         color: #000000;
       }
 
-      #state-b .collection-row[data-active="true"] .cell-name {
+      #state-b .collection-row[data-active="true"] {
         color: #000000;
       }
 
-      #collections-list-b[data-has-selection="true"] .collection-row[data-active="false"] .cell-name,
-      #masters-list[data-has-selection="true"] .collection-row[data-active="false"] .cell-name {
+      #collections-list-b[data-has-selection="true"] .collection-row[data-active="false"],
+      #masters-list[data-has-selection="true"] .collection-row[data-active="false"] {
         color: #cccccc;
       }
 
-      #state-b .collection-row[data-hoverable="true"]:hover .cell-name {
+      #state-b .collection-row[data-hoverable="true"]:hover {
         color: #000000;
       }
 
@@ -651,8 +773,78 @@
         var titleCollectionActive = document.getElementById("title-collection-active");
         var closeButton = document.getElementById("btn-close-n2");
         var defaultCollectionTitle = titleCollectionActive.textContent;
+        var appRoot = document.getElementById("app-root");
         var uiCache = null;
         var activeCollectionKey = null;
+        var UI_IS_TRANSITIONING = false;
+        var transitionId = 0;
+        var heightSyncScheduled = false;
+
+        function ui_clearBStageClasses_() {
+          stateB.classList.remove("is-b-pre", "is-b-anim", "is-b-stable", "is-b-close");
+        }
+
+        function ui_setBStage_(stage) {
+          ui_clearBStageClasses_();
+          if (stage) {
+            stateB.classList.add(stage);
+          }
+        }
+
+        function ui_getActiveStateEl_() {
+          return window.getComputedStyle(stateB).display !== "none" ? stateB : stateA;
+        }
+
+        function ui_applyHeight_() {
+          var activeStateEl;
+
+          if (UI_IS_TRANSITIONING) {
+            return;
+          }
+
+          activeStateEl = ui_getActiveStateEl_();
+          if (!activeStateEl) {
+            return;
+          }
+
+          activeStateEl.style.height = "auto";
+          activeStateEl.style.overflow = "visible";
+          appRoot.style.height = activeStateEl.scrollHeight + "px";
+        }
+
+        function ui_scheduleHeightSync_() {
+          if (heightSyncScheduled) {
+            return;
+          }
+
+          heightSyncScheduled = true;
+
+          Promise.resolve().then(function() {
+            requestAnimationFrame(function() {
+              requestAnimationFrame(function() {
+                heightSyncScheduled = false;
+                ui_applyHeight_();
+              });
+            });
+          });
+        }
+
+        function ui_beginTransition() {
+          UI_IS_TRANSITIONING = true;
+          transitionId += 1;
+          appRoot.classList.add("is-transitioning");
+          return transitionId;
+        }
+
+        function ui_endTransition(token) {
+          if (token !== transitionId) {
+            return;
+          }
+
+          UI_IS_TRANSITIONING = false;
+          appRoot.classList.remove("is-transitioning");
+          ui_scheduleHeightSync_();
+        }
 
         function setActiveRow(rowList, activeRow) {
           var listElement = rowList.length > 0 ? rowList[0].parentNode : null;
@@ -833,6 +1025,7 @@
           }
 
           renderMasters(masters);
+          ui_scheduleHeightSync_();
         }
 
         function handleInitialStateLoad_(res) {
@@ -854,18 +1047,109 @@
           activeCollectionKey = null;
           renderFromCache_();
           stateA.setAttribute("data-loading", "false");
+          ui_scheduleHeightSync_();
+        }
+
+        function ui_openB_fromA(collectionKey) {
+          var token;
+
+          if (UI_IS_TRANSITIONING) {
+            return;
+          }
+
+          if (window.getComputedStyle(stateB).display !== "none") {
+            return;
+          }
+
+          token = ui_beginTransition();
+          stateA.style.display = "block";
+          stateB.style.display = "flex";
+          ui_setBStage_("is-b-pre");
+
+          requestAnimationFrame(function() {
+            if (token !== transitionId) {
+              return;
+            }
+
+            ui_setBStage_("is-b-anim");
+          });
+
+          window.setTimeout(function() {
+            if (token !== transitionId) {
+              return;
+            }
+
+            requestAnimationFrame(function() {
+              if (token !== transitionId) {
+                return;
+              }
+
+              stateA.style.display = "none";
+              stateB.style.display = "flex";
+              ui_setBStage_("is-b-stable");
+              ui_endTransition(token);
+            });
+          }, 300);
+        }
+
+        function ui_closeB_toA() {
+          var token;
+
+          if (UI_IS_TRANSITIONING) {
+            return;
+          }
+
+          if (window.getComputedStyle(stateB).display === "none") {
+            return;
+          }
+
+          token = ui_beginTransition();
+          stateA.style.display = "block";
+          stateB.style.display = "flex";
+          ui_setBStage_("is-b-stable");
+
+          requestAnimationFrame(function() {
+            if (token !== transitionId) {
+              return;
+            }
+
+            ui_setBStage_("is-b-close");
+          });
+
+          window.setTimeout(function() {
+            if (token !== transitionId) {
+              return;
+            }
+
+            requestAnimationFrame(function() {
+              if (token !== transitionId) {
+                return;
+              }
+
+              stateB.style.display = "none";
+              ui_clearBStageClasses_();
+              stateA.style.display = "block";
+              activeCollectionKey = null;
+              renderFromCache_();
+              ui_endTransition(token);
+            });
+          }, 300);
+        }
+
+        function ui_openC_fromB(masterId) {
+          return masterId;
+        }
+
+        function ui_closeC_toB(options) {
+          return options;
         }
 
         function openStateB() {
-          stateA.style.display = "none";
-          stateB.style.display = "flex";
+          ui_openB_fromA(activeCollectionKey);
         }
 
         function closeStateB() {
-          stateA.style.display = "block";
-          stateB.style.display = "none";
-          activeCollectionKey = null;
-          renderFromCache_();
+          ui_closeB_toA();
         }
 
         collectionsList.addEventListener("click", function(event) {
@@ -929,6 +1213,17 @@
         closeButton.addEventListener("click", function() {
           closeStateB();
         });
+
+        window.addEventListener("resize", ui_scheduleHeightSync_);
+
+        if (document.fonts && document.fonts.ready) {
+          document.fonts.ready.then(ui_scheduleHeightSync_);
+        }
+
+        appRoot.classList.add("is-overlay-mode");
+        stateA.style.display = "block";
+        stateB.style.display = "none";
+        ui_clearBStageClasses_();
 
         google.script.run
           .withSuccessHandler(handleInitialStateLoad_)
