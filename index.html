@@ -431,22 +431,20 @@
       #state-b.is-b-stable,
       #state-b.is-b-close {
         display: flex;
+        gap: var(--gap);
       }
 
       #state-b.is-b-pre {
-        transform: translateX(100%);
-        gap: 0;
+        transform: translateX(0);
       }
 
       #state-b.is-b-anim,
       #state-b.is-b-stable {
         transform: translateX(0);
-        gap: var(--gap);
       }
 
       #state-b.is-b-close {
-        transform: translateX(100%);
-        gap: 0;
+        transform: translateX(0);
       }
 
       #state-b.is-b-pre .panel-n1,
@@ -457,6 +455,14 @@
       }
 
       #state-b.is-b-pre .panel-n2,
+      #state-b.is-b-anim .panel-n2,
+      #state-b.is-b-stable .panel-n2 {
+        flex-basis: var(--w70);
+        min-width: var(--w70);
+        max-width: var(--w70);
+        overflow: visible;
+      }
+
       #state-b.is-b-close .panel-n2 {
         flex-basis: 0;
         min-width: 0;
@@ -469,14 +475,6 @@
         flex-basis: var(--w30);
         min-width: var(--w30);
         max-width: var(--w30);
-      }
-
-      #state-b.is-b-anim .panel-n2,
-      #state-b.is-b-stable .panel-n2 {
-        flex-basis: var(--w70);
-        min-width: var(--w70);
-        max-width: var(--w70);
-        overflow: visible;
       }
 
       #state-b:not(.is-b-stable) #btn-close-n2 {
