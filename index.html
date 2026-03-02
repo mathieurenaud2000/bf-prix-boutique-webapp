@@ -292,7 +292,6 @@
         overflow: visible;
         overflow-x: hidden;
         transform: translateX(0);
-        transition: transform var(--t) var(--ease);
       }
 
       #state-b .panel-n1 {
@@ -499,15 +498,41 @@
 
       #state-b.is-c-pre,
       #state-b.is-c-anim,
+      #state-b.is-c-snap,
+      #state-b.is-c-prepos,
       #state-b.is-c-stable,
       #state-b.is-c-close {
         display: flex;
         gap: var(--gap);
+      }
+
+      #state-b.is-c-pre,
+      #state-b.is-c-snap,
+      #state-b.is-c-stable,
+      #state-b.is-c-close {
         transform: translateX(0);
       }
 
+      #state-b.is-c-snap {
+        transition: none !important;
+      }
+
+      #state-b.is-c-prepos {
+        transform: translateX(calc(-1 * (var(--w30) + var(--gap))));
+        transition: none !important;
+      }
+
+      #state-b.is-c-anim {
+        transform: translateX(calc(-1 * (var(--w30) + var(--gap))));
+      }
+
+      #state-b.is-c-anim,
+      #state-b.is-c-close {
+        transition: transform var(--t) var(--ease);
+      }
+
       #state-b.is-c-pre .panel-n1,
-      #state-b.is-c-close .panel-n1 {
+      #state-b.is-c-anim .panel-n1 {
         flex-basis: var(--w30);
         min-width: var(--w30);
         max-width: var(--w30);
@@ -515,7 +540,7 @@
       }
 
       #state-b.is-c-pre .panel-n2,
-      #state-b.is-c-close .panel-n2 {
+      #state-b.is-c-anim .panel-n2 {
         flex-basis: var(--w70);
         min-width: var(--w70);
         max-width: var(--w70);
@@ -523,31 +548,37 @@
       }
 
       #state-b.is-c-pre .panel-n3,
-      #state-b.is-c-close .panel-n3 {
+      #state-b.is-c-anim .panel-n3 {
         flex-basis: 0;
         min-width: 0;
         max-width: 0;
         overflow: hidden;
       }
 
-      #state-b.is-c-anim .panel-n1,
-      #state-b.is-c-stable .panel-n1 {
+      #state-b.is-c-snap .panel-n1,
+      #state-b.is-c-prepos .panel-n1,
+      #state-b.is-c-stable .panel-n1,
+      #state-b.is-c-close .panel-n1 {
         flex-basis: 0;
         min-width: 0;
         max-width: 0;
         overflow: hidden;
       }
 
-      #state-b.is-c-anim .panel-n2,
-      #state-b.is-c-stable .panel-n2 {
+      #state-b.is-c-snap .panel-n2,
+      #state-b.is-c-prepos .panel-n2,
+      #state-b.is-c-stable .panel-n2,
+      #state-b.is-c-close .panel-n2 {
         flex-basis: var(--w30);
         min-width: var(--w30);
         max-width: var(--w30);
         overflow: visible;
       }
 
-      #state-b.is-c-anim .panel-n3,
-      #state-b.is-c-stable .panel-n3 {
+      #state-b.is-c-snap .panel-n3,
+      #state-b.is-c-prepos .panel-n3,
+      #state-b.is-c-stable .panel-n3,
+      #state-b.is-c-close .panel-n3 {
         flex-basis: var(--w70);
         min-width: var(--w70);
         max-width: var(--w70);
@@ -566,6 +597,8 @@
 
       #state-b.is-c-pre #btn-close-n3,
       #state-b.is-c-anim #btn-close-n3,
+      #state-b.is-c-snap #btn-close-n3,
+      #state-b.is-c-prepos #btn-close-n3,
       #state-b.is-c-stable #btn-close-n3,
       #state-b.is-c-close #btn-close-n3 {
         visibility: visible;
@@ -903,7 +936,7 @@
         }
 
         function ui_clearCStageClasses_() {
-          stateB.classList.remove("is-c-pre", "is-c-anim", "is-c-stable", "is-c-close");
+          stateB.classList.remove("is-c-pre", "is-c-anim", "is-c-snap", "is-c-prepos", "is-c-stable", "is-c-close");
         }
 
         function ui_setBStage_(stage) {
@@ -1356,8 +1389,16 @@
                 return;
               }
 
-              ui_setCStage_("is-c-stable");
-              ui_endTransition(token);
+              ui_setCStage_("is-c-snap");
+
+              requestAnimationFrame(function() {
+                if (token !== transitionId) {
+                  return;
+                }
+
+                ui_setCStage_("is-c-stable");
+                ui_endTransition(token);
+              });
             });
           }, UI_T_MS);
         }
@@ -1374,7 +1415,7 @@
           }
 
           token = ui_beginTransition();
-          ui_setCStage_("is-c-stable");
+          ui_setCStage_("is-c-prepos");
 
           requestAnimationFrame(function() {
             if (token !== transitionId) {
