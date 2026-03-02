@@ -169,6 +169,8 @@
 
       #state-a[data-loading="true"] #initial-load-spinner {
         display: block;
+        margin-top: 200px;
+        margin-bottom: 200px;
       }
 
       #state-a[data-loading="true"] #collections-list {
@@ -780,6 +782,7 @@
         var mastersList = document.getElementById("masters-list");
         var titleCollectionActive = document.getElementById("title-collection-active");
         var closeButton = document.getElementById("btn-close-n2");
+        var titleTool = document.getElementById("title-tool");
         var defaultCollectionTitle = titleCollectionActive.textContent;
         var appRoot = document.getElementById("app-root");
         var UI_T_MS = 600;
@@ -853,6 +856,26 @@
           UI_IS_TRANSITIONING = false;
           appRoot.classList.remove("is-transitioning");
           ui_scheduleHeightSync_();
+        }
+
+        function ui_fadeInTitleTool_(token) {
+          titleTool.style.transition = "none";
+          titleTool.style.opacity = "0";
+
+          requestAnimationFrame(function() {
+            if (token !== transitionId) {
+              return;
+            }
+
+            requestAnimationFrame(function() {
+              if (token !== transitionId) {
+                return;
+              }
+
+              titleTool.style.transition = "";
+              titleTool.style.opacity = "1";
+            });
+          });
         }
 
         function setActiveRow(rowList, activeRow) {
@@ -1172,6 +1195,7 @@
               stateA.style.display = "block";
               renderActiveCollectionView_();
               ui_endTransition(token);
+              ui_fadeInTitleTool_(token);
             });
           }, UI_T_MS);
         }
