@@ -507,12 +507,12 @@
       }
 
       #state-b.is-c-pre,
-      #state-b.is-c-stable,
       #state-b.is-c-close {
         transform: translateX(0);
       }
 
-      #state-b.is-c-anim {
+      #state-b.is-c-anim,
+      #state-b.is-c-stable {
         transform: translateX(calc(-1 * (var(--w30) + var(--gap))));
       }
 
@@ -523,6 +523,7 @@
 
       #state-b.is-c-pre .panel-n1,
       #state-b.is-c-anim .panel-n1,
+      #state-b.is-c-stable .panel-n1,
       #state-b.is-c-close .panel-n1 {
         flex-basis: var(--w30);
         min-width: var(--w30);
@@ -560,13 +561,6 @@
         min-width: var(--w70);
         max-width: var(--w70);
         overflow: visible;
-      }
-
-      #state-b.is-c-stable .panel-n1 {
-        flex-basis: 0;
-        min-width: 0;
-        max-width: 0;
-        overflow: hidden;
       }
 
       #state-b:not(.is-b-stable) #btn-close-n2 {
