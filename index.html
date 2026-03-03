@@ -358,10 +358,6 @@
         flex: 0 0 auto;
       }
 
-      #state-b .panel-n2 .footer-divider[data-bottom-gap="true"] {
-        margin-bottom: var(--gap);
-      }
-
       #state-b ul#collections-list-b {
         list-style: none;
         margin: 0;
@@ -941,9 +937,6 @@
 
         function ui_applyHeight_() {
           var activeStateEl;
-          var panelN2ListWrapper = stateB.querySelector(".panel-n2 .list-wrapper");
-          var panelN2FooterDivider = stateB.querySelector(".panel-n2 .footer-divider");
-          var shouldAddBottomGap = false;
 
           if (UI_IS_TRANSITIONING) {
             return;
@@ -952,16 +945,6 @@
           activeStateEl = ui_getActiveStateEl_();
           if (!activeStateEl) {
             return;
-          }
-
-          shouldAddBottomGap =
-            window.getComputedStyle(stateB).display !== "none" &&
-            panelN2ListWrapper &&
-            panelN2FooterDivider &&
-            panelN2ListWrapper.scrollHeight > panelN2ListWrapper.clientHeight;
-
-          if (panelN2FooterDivider) {
-            panelN2FooterDivider.setAttribute("data-bottom-gap", shouldAddBottomGap ? "true" : "false");
           }
 
           activeStateEl.style.height = "auto";
