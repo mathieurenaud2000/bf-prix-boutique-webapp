@@ -370,7 +370,7 @@
         padding: 0;
       }
 
-      #state-b ul#masters-list[data-has-bottom-space="true"] {
+      #state-b ul#masters-list li:last-child {
         margin-bottom: var(--gap);
       }
 
@@ -941,7 +941,6 @@
 
         function ui_applyHeight_() {
           var activeStateEl;
-          var shouldAddMastersBottomSpace = false;
 
           if (UI_IS_TRANSITIONING) {
             return;
@@ -952,12 +951,6 @@
             return;
           }
 
-          shouldAddMastersBottomSpace =
-            window.getComputedStyle(stateB).display !== "none" &&
-            activeStateEl === stateB &&
-            stateB.scrollHeight > window.innerHeight;
-
-          mastersList.setAttribute("data-has-bottom-space", shouldAddMastersBottomSpace ? "true" : "false");
           activeStateEl.style.height = "auto";
           activeStateEl.style.overflow = "visible";
           appRoot.style.height = activeStateEl.scrollHeight + "px";
