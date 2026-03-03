@@ -1476,6 +1476,8 @@
         mastersList.addEventListener("click", function(event) {
           var target = event.target;
           var masterId = null;
+          var visibleName = "Bijou";
+          var cellName = null;
           var isInC = false;
 
           while (target && target !== mastersList && !target.classList.contains("collection-row")) {
@@ -1488,6 +1490,10 @@
 
           setActiveRow(mastersList.querySelectorAll(".collection-row"), target);
           masterId = target.getAttribute("data-master-key");
+          cellName = target.querySelector(".cell-name");
+          if (cellName && typeof cellName.textContent === "string" && cellName.textContent.trim() !== "") {
+            visibleName = cellName.textContent.trim();
+          }
           isInC =
             stateB.classList.contains("is-c-pre") ||
             stateB.classList.contains("is-c-anim") ||
@@ -1495,11 +1501,12 @@
             stateB.classList.contains("is-c-close");
 
           if (isInC) {
-            titleItemActive.textContent = masterId ? toTitleCaseDisplay_(masterId) : "Bijou";
+            titleItemActive.textContent = visibleName;
             return;
           }
 
           ui_openC_fromB(masterId);
+          titleItemActive.textContent = visibleName;
         });
 
         closeButton.addEventListener("click", function() {
