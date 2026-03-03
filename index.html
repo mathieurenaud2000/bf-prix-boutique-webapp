@@ -1472,6 +1472,7 @@
         mastersList.addEventListener("click", function(event) {
           var target = event.target;
           var masterId = null;
+          var isInC = false;
 
           while (target && target !== mastersList && !target.classList.contains("collection-row")) {
             target = target.parentNode;
@@ -1483,6 +1484,17 @@
 
           setActiveRow(mastersList.querySelectorAll(".collection-row"), target);
           masterId = target.getAttribute("data-master-key");
+          isInC =
+            stateB.classList.contains("is-c-pre") ||
+            stateB.classList.contains("is-c-anim") ||
+            stateB.classList.contains("is-c-stable") ||
+            stateB.classList.contains("is-c-close");
+
+          if (isInC) {
+            titleItemActive.textContent = masterId ? toTitleCaseDisplay_(masterId) : "Bijou";
+            return;
+          }
+
           ui_openC_fromB(masterId);
         });
 
