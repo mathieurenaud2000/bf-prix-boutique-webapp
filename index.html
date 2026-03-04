@@ -394,12 +394,16 @@
         height: 1px;
         background: #000000;
         flex: 0 0 auto;
+        margin-top: 4px;
+        margin-bottom: 4px;
       }
 
       .n3-line-grey {
         width: 100%;
         height: 1px;
         background: #e6e6e6;
+        margin-top: 4px;
+        margin-bottom: 4px;
         flex: 0 0 auto;
       }
 
@@ -453,7 +457,7 @@
         display: grid;
         grid-template-columns: repeat(6, 1fr);
         align-items: stretch;
-        min-height: 48px;
+        min-height: 32px; // nouvelle valeur. Avant = 40
       }
 
       .n3-grid-row.n3-grid-row-titles {
@@ -461,9 +465,15 @@
         min-height: 64px;
       }
 
-      .n3-grid-row.n3-grid-row-suggested {
-        background: #f2f2f2;
-      }
+.n3-grid-row.n3-grid-row-suggested {
+  background: #ffffff;
+}
+
+.n3-grid-row.n3-grid-row-suggested .n3-label,
+.n3-grid-row.n3-grid-row-suggested .n3-ro,
+.n3-grid-row.n3-grid-row-suggested .n3-unit {
+  color: #b8b8b8;
+}
 
       .n3-grid-row.n3-grid-row-divider {
         min-height: 0;
@@ -484,19 +494,20 @@
         padding: 0 16px 0 0;
         color: #000000;
         font-family: "Roboto", Arial, sans-serif;
-        font-size: 16px;
-        line-height: 16px;
+        font-size: 14px;
+        line-height: 14px;
       }
 
       .n3-title-cell {
         display: flex;
         align-items: center;
         justify-content: flex-end;
-        padding: 0 16px 0 0;
+        padding: 8px 16px 0 0;
         color: #000000;
         font-family: "Roboto", Arial, sans-serif;
         font-size: 16px;
         line-height: 16px;
+        font-weight: 500;
         text-align: right;
       }
 
@@ -508,10 +519,11 @@
 
       .n3-vu {
         display: grid;
-        grid-template-columns: 8px minmax(0, 1fr) 32px;
+        grid-template-columns: 8px minmax(0, 1fr) 16px;
         align-items: center;
         width: 100%;
-        min-height: 48px;
+        min-height: 24px; // nouvelle valeur heuteur de champ
+        padding-right: 5px;
       }
 
       .n3-input,
@@ -520,39 +532,41 @@
         width: 100%;
         box-sizing: border-box;
         font-family: "Roboto", Arial, sans-serif;
-        font-size: 16px;
-        line-height: 16px;
+        font-size: 14px;
+        line-height: 14px;
         text-align: right;
+        padding-right: 5px;
       }
 
       .n3-input {
-        height: 32px;
+        height: 24px; // CHANGÉ DE 32
         margin: 0;
         padding: 0 5px 0 0;
-        border: 1px solid #e6e6e6;
+        border: 1px solid #c4c4c4;
         background: #FFFFFF;
         color: #000000;
       }
 
-      .n3-ro {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        min-height: 32px;
-        padding: 0;
-        color: #000000;
-      }
+.n3-ro {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  //min-height: 32px;
+  padding-right: 5px;
+  color: #000000;
+}
 
       .n3-unit {
         grid-column: 3;
         display: flex;
         align-items: center;
-        justify-content: center;
-        width: 32px;
+        justify-content: flex-start;
+        width: 16px;
+        padding-left: 5px;
         color: #000000;
         font-family: "Roboto", Arial, sans-serif;
-        font-size: 16px;
-        line-height: 16px;
+        font-size: 14px;
+        line-height: 14px;
       }
 
       .n3-alert {
@@ -623,6 +637,7 @@
         flex-direction: column;
         gap: 48px;
         padding-top: 48px;
+        padding-bottom: 48px;
       }
 
       .n3-saving {
@@ -1176,7 +1191,7 @@
                   <div class="n3-line-2px"></div>
                 </div>
                 <div class="n3-grid-row">
-                  <div class="n3-label">Main d’œuvre (hours)</div>
+                  <div class="n3-label">Main d’œuvre</div>
                   <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">h</div></div></div>
                   <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">h</div></div></div>
                   <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">h</div></div></div>
@@ -1184,7 +1199,7 @@
                   <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">h</div></div></div>
                 </div>
                 <div class="n3-grid-row">
-                  <div class="n3-label">Main d’œuvre (amount)</div>
+                  <div class="n3-label"></div>
                   <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
                   <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
                   <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
@@ -1192,38 +1207,41 @@
                   <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
                 </div>
                 <div class="n3-line-grey"></div>
-                <div class="n3-grid-row">
-                  <div class="n3-label">Métal</div>
-                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
-                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
-                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
-                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
-                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
-                </div>
-                <div class="n3-grid-row">
-                  <div class="n3-label">Matière</div>
-                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
-                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
-                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
-                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
-                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
-                </div>
-                <div class="n3-grid-row">
-                  <div class="n3-label">Chaîne</div>
-                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
-                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
-                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
-                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
-                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
-                </div>
-                <div class="n3-grid-row">
-                  <div class="n3-label">Boîte</div>
-                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
-                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
-                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
-                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
-                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
-                </div>
+<div class="n3-grid-row">
+  <div class="n3-label">Métal</div>
+  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+</div>
+
+<div class="n3-grid-row">
+  <div class="n3-label">Matière</div>
+  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+</div>
+
+<div class="n3-grid-row">
+  <div class="n3-label">Chaîne</div>
+  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+</div>
+
+<div class="n3-grid-row">
+  <div class="n3-label">Boîte</div>
+  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+</div>
                 <div class="n3-line-1px"></div>
                 <div class="n3-grid-row n3-grid-row-suggested">
                   <div class="n3-label">Prix suggéré</div>
@@ -1242,14 +1260,50 @@
                   <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
                 </div>
                 <div class="n3-line-1px"></div>
-                <div class="n3-grid-row">
-                  <div class="n3-label">Profit row</div>
-                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
-                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
-                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
-                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
-                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
-                </div>
+<div class="n3-grid-row">
+  <div class="n3-label">Profit BF</div>
+  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+</div>
+
+<div class="n3-grid-row">
+  <div class="n3-label">Profit BF web</div>
+  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+</div>
+
+<div class="n3-grid-row">
+  <div class="n3-label">Profit M</div>
+  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+</div>
+
+<div class="n3-grid-row">
+  <div class="n3-label">Profit L</div>
+  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+</div>
+
+<div class="n3-grid-row">
+  <div class="n3-label">Profit Ma</div>
+  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+</div>
                 <div class="n3-line-2px"></div>
               </div>
               <div class="n3-actions-wrap">
@@ -1911,6 +1965,28 @@
           .withFailureHandler(function(){})
           .ui_loadState({ activeCollectionKey: null });
       })();
+      
+      // N3: auto-select input contents on focus
+      document.addEventListener("focusin", function (e) {
+        const el = e.target;
+        if (el && el.classList && el.classList.contains("n3-input")) {
+          setTimeout(function () {
+            try { el.select(); } catch (err) {}
+          }, 0);
+        }
+      });
+
+      // N3: leave field on ENTER
+      document.addEventListener("keydown", function (e) {
+      const el = e.target;
+      if (el && el.classList && el.classList.contains("n3-input")) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          el.blur();
+        }
+      }
+    });
+
     </script>
   </body>
 </html>
