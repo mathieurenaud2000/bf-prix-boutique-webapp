@@ -405,7 +405,8 @@
 
       .n3-tabs {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-auto-flow: column;
+        grid-auto-columns: 1fr;
         align-items: stretch;
         height: 64px;
         flex: 0 0 auto;
@@ -423,16 +424,23 @@
         margin: 0;
         padding: 0;
         border: none;
+        border-bottom: 2px solid #000000;
         background: #FFFFFF;
-        color: #000000;
+        color: #9E9E9E;
         font-family: "Roboto", Arial, sans-serif;
-        font-size: 16px;
-        line-height: 16px;
+        font-size: 20px;
+        line-height: 20px;
+        font-weight: 500;
         cursor: pointer;
       }
 
       .n3-tab.is-active {
-        font-weight: 500;
+        border-bottom: none;
+        color: #000000;
+      }
+
+      .n3-tab:not(:last-child) {
+        border-right: 2px solid #000000;
       }
 
       .n3-grid {
@@ -498,10 +506,6 @@
         border-right: 1px solid #e6e6e6;
       }
 
-      .n3-grid-row:not(.n3-grid-row-titles) .n3-cell:last-child {
-        border-right: none;
-      }
-
       .n3-vu {
         display: grid;
         grid-template-columns: 36px minmax(0, 1fr) 36px;
@@ -524,7 +528,7 @@
       .n3-input {
         height: 32px;
         margin: 0;
-        padding: 0 8px;
+        padding: 0;
         border: 1px solid #e6e6e6;
         background: #FFFFFF;
         color: #000000;
@@ -535,7 +539,7 @@
         align-items: center;
         justify-content: flex-end;
         min-height: 32px;
-        padding: 0 8px;
+        padding: 0;
         color: #000000;
       }
 
@@ -593,6 +597,19 @@
         font-size: 16px;
         line-height: 16px;
         cursor: pointer;
+      }
+
+      .n3-btn-saved {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border-color: #9E9E9E;
+        color: #9E9E9E;
+      }
+
+      .n3-btn-saved .material-symbols-outlined {
+        color: #16A34A;
       }
 
       .n3-btn-save[disabled] {
@@ -1168,11 +1185,11 @@
                 </div>
                 <div class="n3-grid-row">
                   <div class="n3-label">Main d’œuvre (amount)</div>
-                  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
-                  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
-                  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
-                  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
-                  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
                 </div>
                 <div class="n3-line-grey"></div>
                 <div class="n3-grid-row">
@@ -1239,7 +1256,7 @@
                 <div class="n3-actions">
                   <button class="n3-btn" type="button">Réinitialiser</button>
                   <button class="n3-btn n3-btn-save" type="button" disabled>Enregistrer</button>
-                  <button class="n3-btn-saved is-hidden" type="button">Enregistré</button>
+                  <button class="n3-btn-saved is-hidden" type="button"><span class="material-symbols-outlined">check</span><span>Enregistré</span></button>
                 </div>
               </div>
               <div id="n3-saving" class="n3-saving is-hidden">
