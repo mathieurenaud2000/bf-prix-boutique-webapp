@@ -374,6 +374,257 @@
         padding: 0;
       }
 
+      .n3-root {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        font-family: "Roboto", Arial, sans-serif;
+      }
+
+      .n3-line-2px {
+        width: 100%;
+        height: 2px;
+        background: #000000;
+        flex: 0 0 auto;
+      }
+
+      .n3-line-1px {
+        width: 100%;
+        height: 1px;
+        background: #000000;
+        flex: 0 0 auto;
+      }
+
+      .n3-line-grey {
+        width: 100%;
+        height: 1px;
+        background: #e6e6e6;
+        flex: 0 0 auto;
+      }
+
+      .n3-tabs {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        align-items: stretch;
+        height: 64px;
+        flex: 0 0 auto;
+      }
+
+      .n3-tabs.is-hidden,
+      .n3-alert.is-hidden,
+      .n3-saving.is-hidden,
+      .n3-btn-saved.is-hidden {
+        display: none;
+      }
+
+      .n3-tab {
+        height: 64px;
+        margin: 0;
+        padding: 0;
+        border: none;
+        background: #FFFFFF;
+        color: #000000;
+        font-family: "Roboto", Arial, sans-serif;
+        font-size: 16px;
+        line-height: 16px;
+        cursor: pointer;
+      }
+
+      .n3-tab.is-active {
+        font-weight: 500;
+      }
+
+      .n3-grid {
+        display: flex;
+        flex-direction: column;
+        flex: 0 0 auto;
+      }
+
+      .n3-grid-row {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        align-items: stretch;
+        min-height: 48px;
+      }
+
+      .n3-grid-row.n3-grid-row-titles {
+        height: 64px;
+        min-height: 64px;
+      }
+
+      .n3-grid-row.n3-grid-row-suggested {
+        background: #f2f2f2;
+      }
+
+      .n3-grid-row.n3-grid-row-divider {
+        min-height: 0;
+        height: auto;
+      }
+
+      .n3-label,
+      .n3-title-cell,
+      .n3-cell {
+        box-sizing: border-box;
+        min-width: 0;
+      }
+
+      .n3-label {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 0 16px 0 0;
+        color: #000000;
+        font-family: "Roboto", Arial, sans-serif;
+        font-size: 16px;
+        line-height: 16px;
+      }
+
+      .n3-title-cell {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding: 0 16px 0 0;
+        color: #000000;
+        font-family: "Roboto", Arial, sans-serif;
+        font-size: 16px;
+        line-height: 16px;
+        text-align: right;
+      }
+
+      .n3-cell {
+        display: flex;
+        align-items: center;
+        border-right: 1px solid #e6e6e6;
+      }
+
+      .n3-grid-row:not(.n3-grid-row-titles) .n3-cell:last-child {
+        border-right: none;
+      }
+
+      .n3-vu {
+        display: grid;
+        grid-template-columns: 36px minmax(0, 1fr) 36px;
+        align-items: center;
+        width: 100%;
+        min-height: 48px;
+      }
+
+      .n3-input,
+      .n3-ro {
+        grid-column: 2;
+        width: 100%;
+        box-sizing: border-box;
+        font-family: "Roboto", Arial, sans-serif;
+        font-size: 16px;
+        line-height: 16px;
+        text-align: right;
+      }
+
+      .n3-input {
+        height: 32px;
+        margin: 0;
+        padding: 0 8px;
+        border: 1px solid #e6e6e6;
+        background: #FFFFFF;
+        color: #000000;
+      }
+
+      .n3-ro {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        min-height: 32px;
+        padding: 0 8px;
+        color: #000000;
+      }
+
+      .n3-unit {
+        grid-column: 3;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        color: #000000;
+        font-family: "Roboto", Arial, sans-serif;
+        font-size: 16px;
+        line-height: 16px;
+      }
+
+      .n3-alert {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        padding: 24px 0;
+        color: #000000;
+        font-family: "Roboto", Arial, sans-serif;
+        font-size: 16px;
+        line-height: 16px;
+      }
+
+      .n3-alert-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 48px;
+      }
+
+      .n3-alert-actions,
+      .n3-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 48px;
+      }
+
+      .n3-btn,
+      .n3-tab,
+      .n3-btn-saved {
+        font-family: "Roboto", Arial, sans-serif;
+      }
+
+      .n3-btn,
+      .n3-btn-saved {
+        height: 48px;
+        margin: 0;
+        padding: 0 16px;
+        border: 1px solid #000000;
+        background: #FFFFFF;
+        color: #000000;
+        font-size: 16px;
+        line-height: 16px;
+        cursor: pointer;
+      }
+
+      .n3-btn-save[disabled] {
+        border-color: #e6e6e6;
+        color: #e6e6e6;
+        cursor: default;
+      }
+
+      .n3-actions-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 48px;
+        padding-top: 48px;
+      }
+
+      .n3-saving {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.9);
+      }
+
+      .n3-spinner {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        border: 4px solid #e6e6e6;
+        border-top-color: #000000;
+      }
+
       #state-b #btn-close-n2,
       #state-b #btn-close-n3 {
         font-size: 48px;
@@ -881,11 +1132,120 @@
                 </button>
               </div>
             </div>
-            <div class="header-divider"></div>
-            <div class="list-wrapper">
-              <div class="cell-name">Sélectionnez un bijou</div>
+            <div id="n3-root" class="n3-root">
+              <div class="n3-line-2px"></div>
+              <div id="n3-tabs" class="n3-tabs is-hidden">
+                <button class="n3-tab is-active" type="button">Or</button>
+                <button class="n3-tab" type="button">Argent</button>
+              </div>
+              <div id="n3-grid" class="n3-grid">
+                <div class="n3-grid-row n3-grid-row-titles">
+                  <div class="n3-label"></div>
+                  <div class="n3-title-cell">Variation 1</div>
+                  <div class="n3-title-cell">Variation 2</div>
+                  <div class="n3-title-cell">Variation 3</div>
+                  <div class="n3-title-cell">Variation 4</div>
+                  <div class="n3-title-cell">Variation 5</div>
+                </div>
+                <div class="n3-line-1px"></div>
+                <div id="n3-alert" class="n3-alert is-hidden">
+                  <div class="n3-alert-row">
+                    <div class="n3-alert-text">ATTENTION : Les changements n'ont pas été enregistrés</div>
+                    <div class="n3-alert-actions">
+                      <button class="n3-btn" type="button">Enregistrer</button>
+                      <button class="n3-btn" type="button">Fermer</button>
+                    </div>
+                  </div>
+                  <div class="n3-line-2px"></div>
+                </div>
+                <div class="n3-grid-row">
+                  <div class="n3-label">Main d’œuvre (hours)</div>
+                  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">h</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">h</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">h</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">h</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">h</div></div></div>
+                </div>
+                <div class="n3-grid-row">
+                  <div class="n3-label">Main d’œuvre (amount)</div>
+                  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+                </div>
+                <div class="n3-line-grey"></div>
+                <div class="n3-grid-row">
+                  <div class="n3-label">Métal</div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                </div>
+                <div class="n3-grid-row">
+                  <div class="n3-label">Matière</div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                </div>
+                <div class="n3-grid-row">
+                  <div class="n3-label">Chaîne</div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                </div>
+                <div class="n3-grid-row">
+                  <div class="n3-label">Boîte</div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                </div>
+                <div class="n3-line-1px"></div>
+                <div class="n3-grid-row n3-grid-row-suggested">
+                  <div class="n3-label">Prix suggéré</div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
+                </div>
+                <div class="n3-grid-row">
+                  <div class="n3-label">Prix officiel</div>
+                  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">$</div></div></div>
+                </div>
+                <div class="n3-line-1px"></div>
+                <div class="n3-grid-row">
+                  <div class="n3-label">Profit row</div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+                  <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">%</div></div></div>
+                </div>
+                <div class="n3-line-2px"></div>
+              </div>
+              <div class="n3-actions-wrap">
+                <div class="n3-actions">
+                  <button class="n3-btn" type="button">Réinitialiser</button>
+                  <button class="n3-btn n3-btn-save" type="button" disabled>Enregistrer</button>
+                  <button class="n3-btn-saved is-hidden" type="button">Enregistré</button>
+                </div>
+              </div>
+              <div id="n3-saving" class="n3-saving is-hidden">
+                <div class="n3-spinner"></div>
+              </div>
             </div>
-            <div class="footer-divider"></div>
           </div>
         </div>
       </div>
