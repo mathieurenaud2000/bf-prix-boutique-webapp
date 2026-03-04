@@ -1333,12 +1333,15 @@
         var closeButtonN3 = document.getElementById("btn-close-n3");
         var titleTool = document.getElementById("title-tool");
         var titleItemActive = document.getElementById("title-item-active");
+        var n3Root = document.getElementById("n3-root");
         var defaultCollectionTitle = titleCollectionActive.textContent;
         var appRoot = document.getElementById("app-root");
         var UI_T_MS = 600;
         var uiCache = null;
         var activeCollectionKey = null;
         var uiActiveMasterId = null;
+        var uiMasterDetailInFlightById = {};
+        var n3BindingsReady = false;
         var UI_IS_TRANSITIONING = false;
         var transitionId = 0;
         var heightSyncScheduled = false;
@@ -1575,171 +1578,321 @@
           updateListSelectionState(mastersList, false);
         }
 
-        function renderN3Readonly_() {
-          var panelN3 = stateB.querySelector(".panel-n3");
-          var allRows;
-          var rowByLabel = {};
-          var variants = [];
-          var normalizedVariants = [];
-          var titleCells;
-          var activeMaster = null;
-          var masterKey = uiActiveMasterId !== null && typeof uiActiveMasterId !== "undefined"
-            ? String(uiActiveMasterId)
-            : "";
-
-          function pickValue_(source, keys, fallbackValue) {
-            var i;
-
-            if (!source) {
-              return fallbackValue;
-            }
-
-            for (i = 0; i < keys.length; i += 1) {
-              if (
-                Object.prototype.hasOwnProperty.call(source, keys[i]) &&
-                source[keys[i]] !== null &&
-                typeof source[keys[i]] !== "undefined" &&
-                source[keys[i]] !== ""
-              ) {
-                return source[keys[i]];
-              }
-            }
-
-            return fallbackValue;
+        function normalizeMasterId_(value) {
+          if (value === null || typeof value === "undefined") {
+            return null;
           }
 
-          function setReadonlyRow_(row, values, fallbackValue) {
-            var cells;
+          value = String(value).trim();
+          return value === "" ? null : value;
+        }
 
-            if (!row) {
-              return;
-            }
+        function setN3RowFieldBindings_(row, fieldName, selector) {
+          var cells;
 
-            cells = row.querySelectorAll(".n3-ro");
-            Array.prototype.forEach.call(cells, function(cell, index) {
-              var value = typeof values[index] !== "undefined" ? values[index] : fallbackValue;
-              cell.textContent = String(value);
-            });
-          }
-
-          function getReadonlyValues_(keys, fallbackValue) {
-            var values = [];
-            var i;
-
-            for (i = 0; i < titleCells.length; i += 1) {
-              if (normalizedVariants[i]) {
-                values.push(pickValue_(normalizedVariants[i], keys, fallbackValue));
-              } else {
-                values.push(fallbackValue);
-              }
-            }
-
-            return values;
-          }
-
-          if (!panelN3) {
+          if (!row) {
             return;
           }
 
-          Array.prototype.forEach.call(panelN3.querySelectorAll(".n3-input"), function(input) {
+          cells = row.querySelectorAll(".n3-cell");
+          Array.prototype.forEach.call(cells, function(cell, index) {
+            var node = cell.querySelector(selector);
+
+            if (!node) {
+              return;
+            }
+
+            node.setAttribute("data-field", fieldName);
+            node.setAttribute("data-variant-index", String(index));
+          });
+        }
+
+        function initN3ReadonlyBindings_() {
+          var rows;
+          var rowByLabel = {};
+          var titleCells;
+          var laborRow;
+          var fabricationPriceRow;
+
+          if (n3BindingsReady || !n3Root) {
+            return;
+          }
+
+          rows = n3Root.querySelectorAll(".n3-grid-row");
+          Array.prototype.forEach.call(rows, function(row) {
+            var label = row.querySelector(".n3-label");
+            var labelText = label ? label.textContent.trim() : "";
+
+            if (labelText !== "") {
+              rowByLabel[labelText] = row;
+            }
+          });
+
+          titleCells = n3Root.querySelectorAll(".n3-grid-row-titles .n3-title-cell");
+          Array.prototype.forEach.call(titleCells, function(cell, index) {
+            cell.setAttribute("data-field", "variant_title");
+            cell.setAttribute("data-variant-index", String(index));
+          });
+
+          laborRow = rowByLabel["Main d’œuvre"];
+          fabricationPriceRow = laborRow && laborRow.nextElementSibling &&
+            laborRow.nextElementSibling.classList.contains("n3-grid-row")
+            ? laborRow.nextElementSibling
+            : null;
+
+          setN3RowFieldBindings_(laborRow, "temps", ".n3-input");
+          setN3RowFieldBindings_(fabricationPriceRow, "fabrication_prix", ".n3-ro");
+          setN3RowFieldBindings_(rowByLabel["Métal"], "metal_prix", ".n3-input");
+          setN3RowFieldBindings_(rowByLabel["Matière"], "matiere", ".n3-input");
+          setN3RowFieldBindings_(rowByLabel["Chaîne"], "chaine", ".n3-input");
+          setN3RowFieldBindings_(rowByLabel["Boîte"], "boite", ".n3-input");
+          setN3RowFieldBindings_(rowByLabel["Prix suggéré"], "bf_sug", ".n3-ro");
+          setN3RowFieldBindings_(rowByLabel["Prix officiel"], "bf_pri", ".n3-input");
+          setN3RowFieldBindings_(rowByLabel["Profit BF"], "bf_pou", ".n3-ro");
+          setN3RowFieldBindings_(rowByLabel["Profit BF web"], "bf_web_pou", ".n3-ro");
+          setN3RowFieldBindings_(rowByLabel["Profit M"], "m_pou", ".n3-ro");
+          setN3RowFieldBindings_(rowByLabel["Profit L"], "l_pou", ".n3-ro");
+          setN3RowFieldBindings_(rowByLabel["Profit Ma"], "ma_pou", ".n3-ro");
+
+          Array.prototype.forEach.call(n3Root.querySelectorAll(".n3-input"), function(input) {
             input.disabled = true;
             input.readOnly = true;
             input.tabIndex = -1;
           });
 
-          titleCells = panelN3.querySelectorAll(".n3-grid-row-titles .n3-title-cell");
-          allRows = panelN3.querySelectorAll(".n3-grid-row");
+          n3BindingsReady = true;
+        }
 
-          Array.prototype.forEach.call(allRows, function(row) {
-            var labelEl = row.querySelector(".n3-label");
-            var label = labelEl ? labelEl.textContent.trim() : "";
-            if (label !== "") {
-              rowByLabel[label] = row;
-            }
-          });
-
-          if (
-            uiCache &&
-            uiCache.mastersByCollection &&
-            typeof uiCache.mastersByCollection === "object"
-          ) {
-            Object.keys(uiCache.mastersByCollection).forEach(function(collectionKey) {
-              var masters = uiCache.mastersByCollection[collectionKey];
-
-              if (!Array.isArray(masters)) {
-                return;
-              }
-
-              masters.forEach(function(master) {
-                if (String(master.key) !== masterKey) {
-                  return;
-                }
-
-                if (!activeMaster) {
-                  activeMaster = master;
-                }
-
-                if (Array.isArray(master.variants)) {
-                  variants = variants.concat(master.variants);
-                }
-              });
-            });
+        function setN3LoadingState_(isLoading) {
+          if (!n3Root) {
+            return;
           }
 
-          if (Array.isArray(uiCache && uiCache.rows)) {
-            uiCache.rows.forEach(function(row) {
-              if (String(pickValue_(row, ["id_master", "masterId", "idMaster"], "")) === masterKey) {
-                variants.push(row);
-              }
-            });
+          n3Root.setAttribute("data-loading", isLoading ? "true" : "false");
+        }
+
+        function resetN3ReadonlyFields_() {
+          var nodes;
+
+          initN3ReadonlyBindings_();
+          if (!n3Root) {
+            return;
           }
 
-          if (!variants.length && activeMaster) {
-            variants.push(activeMaster);
-          }
+          nodes = n3Root.querySelectorAll("[data-field][data-variant-index]");
+          Array.prototype.forEach.call(nodes, function(node) {
+            var fieldName = node.getAttribute("data-field");
+            var variantIndex = Number(node.getAttribute("data-variant-index"));
 
-          normalizedVariants = variants.slice(0, titleCells.length).map(function(variant) {
-            return {
-              metal_nom: String(pickValue_(variant, ["metal_nom", "metal", "metalName", "name"], "") || ""),
-              taille: String(pickValue_(variant, ["taille", "size", "taille_nom"], "") || ""),
-              main_oeuvre_montant: pickValue_(variant, ["main_oeuvre_montant", "mainOeuvreMontant", "laborAmount"], 0),
-              prix_suggere: pickValue_(variant, ["prix_suggere", "prixSuggere", "suggestedPrice"], 0),
-              profit_bf: pickValue_(variant, ["profit_bf", "profitBf"], 0),
-              profit_bf_web: pickValue_(variant, ["profit_bf_web", "profitBfWeb"], 0),
-              profit_m: pickValue_(variant, ["profit_m", "profitM"], 0),
-              profit_l: pickValue_(variant, ["profit_l", "profitL"], 0),
-              profit_ma: pickValue_(variant, ["profit_ma", "profitMa"], 0)
-            };
-          });
-
-          Array.prototype.forEach.call(titleCells, function(cell, index) {
-            var variant = normalizedVariants[index];
-            var titleParts;
-
-            if (!variant) {
-              cell.textContent = "Variation " + String(index + 1);
+            if (fieldName === "variant_title") {
+              node.textContent = "Variation " + String(variantIndex + 1);
               return;
             }
 
-            titleParts = [variant.metal_nom, variant.taille].filter(function(part) {
-              return part !== "";
-            });
-            cell.textContent = titleParts.length ? titleParts.join(" ") : "Variation " + String(index + 1);
+            if (node.classList.contains("n3-input")) {
+              node.value = "";
+            } else {
+              node.textContent = "";
+            }
+          });
+        }
+
+        function setN3FieldValue_(fieldName, variantIndex, value) {
+          var node;
+
+          if (!n3Root) {
+            return;
+          }
+
+          node = n3Root.querySelector(
+            '[data-field="' + fieldName + '"][data-variant-index="' + String(variantIndex) + '"]'
+          );
+          if (!node) {
+            return;
+          }
+
+          if (node.classList.contains("n3-input")) {
+            node.value = value === null || typeof value === "undefined" ? "" : String(value);
+          } else {
+            node.textContent = value === null || typeof value === "undefined" ? "" : String(value);
+          }
+        }
+
+        function normalizeN3Variants_(variants) {
+          var list = Array.isArray(variants) ? variants.slice() : [];
+          var hasRowRef = list.length > 0 && list.every(function(variant) {
+            return (
+              variant &&
+              variant.rowRef !== null &&
+              typeof variant.rowRef !== "undefined" &&
+              !isNaN(Number(variant.rowRef))
+            );
           });
 
-          setReadonlyRow_(rowByLabel["Prix suggéré"], getReadonlyValues_(["prix_suggere"], 0), 0);
-          setReadonlyRow_(rowByLabel["Profit BF"], getReadonlyValues_(["profit_bf"], 0), 0);
-          setReadonlyRow_(rowByLabel["Profit BF web"], getReadonlyValues_(["profit_bf_web"], 0), 0);
-          setReadonlyRow_(rowByLabel["Profit M"], getReadonlyValues_(["profit_m"], 0), 0);
-          setReadonlyRow_(rowByLabel["Profit L"], getReadonlyValues_(["profit_l"], 0), 0);
-          setReadonlyRow_(rowByLabel["Profit Ma"], getReadonlyValues_(["profit_ma"], 0), 0);
-          if (rowByLabel["Main d’œuvre"] && rowByLabel["Main d’œuvre"].nextElementSibling) {
-            setReadonlyRow_(
-              rowByLabel["Main d’œuvre"].nextElementSibling,
-              getReadonlyValues_(["main_oeuvre_montant"], 0),
-              0
-            );
+          if (hasRowRef) {
+            list.sort(function(a, b) {
+              return Number(a.rowRef) - Number(b.rowRef);
+            });
           }
+
+          return list;
+        }
+
+        function buildN3VariantTitle_(variant, index) {
+          var parts = [];
+
+          if (!variant || typeof variant !== "object") {
+            return "Variation " + String(index + 1);
+          }
+
+          if (variant.metal_nom !== null && typeof variant.metal_nom !== "undefined" && String(variant.metal_nom) !== "") {
+            parts.push(String(variant.metal_nom));
+          }
+
+          if (variant.taille !== null && typeof variant.taille !== "undefined" && String(variant.taille) !== "") {
+            parts.push(String(variant.taille));
+          }
+
+          return parts.length ? parts.join(" ") : "Variation " + String(index + 1);
+        }
+
+        function renderN3Readonly(detail) {
+          var titleCells;
+          var variants;
+          var maxColumns;
+          var fields;
+
+          initN3ReadonlyBindings_();
+          resetN3ReadonlyFields_();
+
+          if (!n3Root || !detail || !Array.isArray(detail.variants)) {
+            setN3LoadingState_(false);
+            return;
+          }
+
+          titleCells = n3Root.querySelectorAll('[data-field="variant_title"]');
+          maxColumns = titleCells.length;
+          variants = normalizeN3Variants_(detail.variants).slice(0, maxColumns);
+          fields = [
+            "temps",
+            "fabrication_prix",
+            "metal_prix",
+            "matiere",
+            "chaine",
+            "boite",
+            "bf_sug",
+            "bf_pri",
+            "bf_pou",
+            "bf_web_pou",
+            "m_pou",
+            "l_pou",
+            "ma_pou"
+          ];
+
+          Array.prototype.forEach.call(titleCells, function(cell, index) {
+            cell.textContent = buildN3VariantTitle_(variants[index], index);
+          });
+
+          variants.forEach(function(variant, index) {
+            fields.forEach(function(fieldName) {
+              setN3FieldValue_(fieldName, index, variant[fieldName]);
+            });
+          });
+
+          setN3LoadingState_(false);
+        }
+
+        function flushMasterDetailQueue_(idMaster, result) {
+          var key = String(idMaster);
+          var queue = uiMasterDetailInFlightById[key] || [];
+
+          delete uiMasterDetailInFlightById[key];
+          queue.forEach(function(callback) {
+            callback(result);
+          });
+        }
+
+        function loadMasterDetail_(idMaster, callback) {
+          var normalizedId = normalizeMasterId_(idMaster);
+          var key;
+          var requestPayload;
+
+          if (!normalizedId || typeof callback !== "function") {
+            return;
+          }
+
+          key = String(normalizedId);
+          if (uiCache && uiCache.masterDetailsById && uiCache.masterDetailsById[key]) {
+            callback({
+              ok: true,
+              data: uiCache.masterDetailsById[key]
+            });
+            return;
+          }
+
+          if (uiMasterDetailInFlightById[key]) {
+            uiMasterDetailInFlightById[key].push(callback);
+            return;
+          }
+
+          uiMasterDetailInFlightById[key] = [callback];
+          requestPayload = { id_master: Number(normalizedId) };
+
+          google.script.run
+            .withSuccessHandler(function(res) {
+              if (res && res.ok === true && res.data) {
+                if (uiCache && uiCache.masterDetailsById) {
+                  uiCache.masterDetailsById[key] = res.data;
+                }
+                flushMasterDetailQueue_(normalizedId, { ok: true, data: res.data });
+                return;
+              }
+
+              flushMasterDetailQueue_(normalizedId, res || {
+                ok: false,
+                error: {
+                  code: "ERR_UI_MAPPING",
+                  message: "Invalid ui_loadMaster response",
+                  details: {}
+                }
+              });
+            })
+            .withFailureHandler(function() {
+              flushMasterDetailQueue_(normalizedId, {
+                ok: false,
+                error: {
+                  code: "ERR_UI_MAPPING",
+                  message: "Failed to load master detail",
+                  details: { id_master: Number(normalizedId) }
+                }
+              });
+            })
+            .ui_loadMaster(requestPayload);
+        }
+
+        function loadAndRenderN3ForMaster_(masterId) {
+          var normalizedId = normalizeMasterId_(masterId);
+
+          if (!normalizedId) {
+            return;
+          }
+
+          uiActiveMasterId = normalizedId;
+          setN3LoadingState_(true);
+          resetN3ReadonlyFields_();
+
+          loadMasterDetail_(normalizedId, function(res) {
+            if (String(uiActiveMasterId) !== String(normalizedId)) {
+              return;
+            }
+
+            if (res && res.ok === true && res.data) {
+              renderN3Readonly(res.data);
+              return;
+            }
+
+            setN3LoadingState_(false);
+          });
         }
 
         function applyCollectionSelectionState_(nextActiveCollectionKey) {
@@ -1835,8 +1988,10 @@
 
           uiCache = {
             collections: res.data.collections,
-            mastersByCollection: res.data.mastersByCollection
+            mastersByCollection: res.data.mastersByCollection,
+            masterDetailsById: {}
           };
+          uiMasterDetailInFlightById = {};
           activeCollectionKey = null;
           renderFromCache_();
           stateA.setAttribute("data-loading", "false");
@@ -1974,7 +2129,7 @@
             });
           }, UI_T_MS);
 
-          renderN3Readonly_();
+          loadAndRenderN3ForMaster_(masterId);
         }
 
         function ui_closeC_toB(options) {
@@ -2104,6 +2259,7 @@
 
           if (isInC) {
             titleItemActive.textContent = visibleName;
+            loadAndRenderN3ForMaster_(masterId);
             return;
           }
 
@@ -2127,6 +2283,8 @@
 
         appRoot.classList.add("is-overlay-mode");
         appRoot.style.setProperty("--t", UI_T_MS + "ms");
+        initN3ReadonlyBindings_();
+        resetN3ReadonlyFields_();
         stateA.style.display = "block";
         stateB.style.display = "none";
         ui_clearBStageClasses_();

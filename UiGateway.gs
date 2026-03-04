@@ -74,3 +74,58 @@ function ui_loadState(payload) {
     }
   };
 }
+
+function ui_loadMaster(payload) {
+  var idMaster = payload && payload.id_master;
+  var loadMasterResult = api_loadMaster(idMaster);
+  var data;
+  var sourceVariants;
+  var variants;
+
+  if (loadMasterResult.ok !== true) {
+    return loadMasterResult;
+  }
+
+  if (
+    !loadMasterResult.data ||
+    !Array.isArray(loadMasterResult.data.variants)
+  ) {
+    return createError("ERR_UI_MAPPING", "Invalid api_loadMaster structure", {});
+  }
+
+  data = loadMasterResult.data;
+  sourceVariants = safeArray_(data.variants);
+  variants = sourceVariants.map(function(variant) {
+    var hasRowRef = Object.prototype.hasOwnProperty.call(variant, "rowRef");
+
+    return {
+      rowRef: hasRowRef ? variant.rowRef : null,
+      id: variant.id,
+      id_master: variant.id_master,
+      metal_nom: variant.metal_nom,
+      taille: variant.taille,
+      temps: variant.temps,
+      metal_prix: variant.metal_prix,
+      matiere: variant.matiere,
+      chaine: variant.chaine,
+      boite: variant.boite,
+      fabrication_prix: variant.fabrication_prix,
+      bf_pri: variant.bf_pri,
+      bf_sug: variant.bf_sug,
+      bf_pou: variant.bf_pou,
+      bf_web_pou: variant.bf_web_pou,
+      m_pou: variant.m_pou,
+      l_pou: variant.l_pou,
+      ma_pou: variant.ma_pou
+    };
+  });
+
+  return {
+    ok: true,
+    data: {
+      id_master: data.id_master,
+      structureDE: data.structureDE,
+      variants: variants
+    }
+  };
+}
