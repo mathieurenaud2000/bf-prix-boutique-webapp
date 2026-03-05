@@ -1342,6 +1342,14 @@
         var uiActiveMasterId = null;
         var uiMasterDetailInFlightById = {};
         var n3BindingsReady = false;
+        var N3_EDITABLE_FIELDS = {
+          temps: true,
+          metal_prix: true,
+          matiere: true,
+          chaine: true,
+          boite: true,
+          bf_pri: true
+        };
         var UI_IS_TRANSITIONING = false;
         var transitionId = 0;
         var heightSyncScheduled = false;
@@ -1607,6 +1615,21 @@
           });
         }
 
+        function setN3InputEditability_() {
+          if (!n3Root) {
+            return;
+          }
+
+          Array.prototype.forEach.call(n3Root.querySelectorAll(".n3-input"), function(input) {
+            var fieldName = input.getAttribute("data-field");
+            var isEditable = !!fieldName && Object.prototype.hasOwnProperty.call(N3_EDITABLE_FIELDS, fieldName);
+
+            input.disabled = !isEditable;
+            input.readOnly = !isEditable;
+            input.tabIndex = isEditable ? 0 : -1;
+          });
+        }
+
         function initN3ReadonlyBindings_() {
           var rows;
           var rowByLabel = {};
@@ -1654,11 +1677,7 @@
           setN3RowFieldBindings_(rowByLabel["Profit L"], "l_pou", ".n3-ro");
           setN3RowFieldBindings_(rowByLabel["Profit Ma"], "ma_pou", ".n3-ro");
 
-          Array.prototype.forEach.call(n3Root.querySelectorAll(".n3-input"), function(input) {
-            input.disabled = true;
-            input.readOnly = true;
-            input.tabIndex = -1;
-          });
+          setN3InputEditability_();
 
           n3BindingsReady = true;
         }
