@@ -1644,7 +1644,7 @@
           });
         }
 
-        function buildBootMasterQueue_(collections, mastersByCollection) {
+        function buildBootCollectionQueue_(collections, mastersByCollection) {
           var collectionOrder = [];
           var collectionNameByKey = {};
           var queue = [];
@@ -1677,7 +1677,12 @@
           });
 
           collectionOrder.forEach(function(collectionKey) {
-            (Array.isArray((mastersByCollection || {})[collectionKey]) ? (mastersByCollection || {})[collectionKey] : []).forEach(function(masterItem) {
+            var masterIds = [];
+            var mastersForCollection = Array.isArray((mastersByCollection || {})[collectionKey])
+              ? (mastersByCollection || {})[collectionKey]
+              : [];
+
+            mastersForCollection.forEach(function(masterItem) {
               var idMaster = normalizeMasterId_(masterItem && masterItem.key);
 
               if (!idMaster || seenMasterIds[idMaster]) {
@@ -1685,21 +1690,58 @@
               }
 
               seenMasterIds[idMaster] = true;
-              queue.push({
-                idMaster: idMaster,
-                collectionKey: collectionKey,
-                collectionName: collectionNameByKey[collectionKey] || collectionKey
-              });
+              masterIds.push(idMaster);
+            });
+
+            queue.push({
+              collectionKey: collectionKey,
+              collectionName: collectionNameByKey[collectionKey] || collectionKey,
+              masterIds: masterIds
             });
           });
 
           return queue;
         }
 
+        function preloadCollectionMasterDetailsAtBoot_(bootData, collectionEntry, onDone, onFail) {
+          var index = 0;
+          var masterIds = Array.isArray(collectionEntry && collectionEntry.masterIds)
+            ? collectionEntry.masterIds
+            : [];
+
+          function loadNextMaster() {
+            var idMaster;
+
+            if (index >= masterIds.length) {
+              onDone();
+              return;
+            }
+
+            idMaster = masterIds[index];
+            google.script.run
+              .withSuccessHandler(function(res) {
+                if (!res || res.ok !== true || !res.data) {
+                  onFail();
+                  return;
+                }
+
+                bootData.masterDetailsById[String(idMaster)] = res.data;
+                index += 1;
+                loadNextMaster();
+              })
+              .withFailureHandler(function() {
+                onFail();
+              })
+              .ui_loadMaster({ id_master: Number(idMaster) });
+          }
+
+          loadNextMaster();
+        }
+
         function preloadAllMasterDetailsAtBoot_(bootData, onDone, onFail) {
-          var queue = buildBootMasterQueue_(bootData.collections, bootData.mastersByCollection);
-          var loadedCount = 0;
-          var nextIndex = 0;
+          var queue = buildBootCollectionQueue_(bootData.collections, bootData.mastersByCollection);
+          var loadedCollections = 0;
+          var collectionIndex = 0;
 
           setBootProgressTotal_(queue.length);
           setBootProgressLoaded_(0);
@@ -1709,37 +1751,31 @@
             return;
           }
 
-          function loadNext() {
+          function loadNextCollection() {
             var currentEntry;
 
-            if (nextIndex >= queue.length) {
+            if (collectionIndex >= queue.length) {
               onDone();
               return;
             }
 
-            currentEntry = queue[nextIndex];
+            currentEntry = queue[collectionIndex];
             setBootLoadingText_(currentEntry.collectionName);
 
-            google.script.run
-              .withSuccessHandler(function(res) {
-                if (!res || res.ok !== true || !res.data) {
-                  onFail();
-                  return;
-                }
-
-                bootData.masterDetailsById[String(currentEntry.idMaster)] = res.data;
-                nextIndex += 1;
-                loadedCount += 1;
-                setBootProgressLoaded_(loadedCount);
-                loadNext();
-              })
-              .withFailureHandler(function() {
-                onFail();
-              })
-              .ui_loadMaster({ id_master: Number(currentEntry.idMaster) });
+            preloadCollectionMasterDetailsAtBoot_(
+              bootData,
+              currentEntry,
+              function() {
+                collectionIndex += 1;
+                loadedCollections += 1;
+                setBootProgressLoaded_(loadedCollections);
+                loadNextCollection();
+              },
+              onFail
+            );
           }
 
-          loadNext();
+          loadNextCollection();
         }
 
         function startInitialBootLoad_() {
