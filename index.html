@@ -1350,6 +1350,22 @@
           boite: true,
           bf_pri: true
         };
+        var N3_MONEY_FIELDS = {
+          fabrication_prix: true,
+          metal_prix: true,
+          matiere: true,
+          chaine: true,
+          boite: true,
+          bf_sug: true,
+          bf_pri: true
+        };
+        var N3_PERCENT_FIELDS = {
+          bf_pou: true,
+          bf_web_pou: true,
+          m_pou: true,
+          l_pou: true,
+          ma_pou: true
+        };
         var UI_IS_TRANSITIONING = false;
         var transitionId = 0;
         var heightSyncScheduled = false;
@@ -1595,6 +1611,70 @@
           return value === "" ? null : value;
         }
 
+        function n3_parseNumber_(raw) {
+          var normalized;
+          var num;
+
+          if (raw === null || typeof raw === "undefined") {
+            return null;
+          }
+
+          normalized = String(raw).trim().replace(/\s+/g, "").replace(",", ".");
+          if (normalized === "") {
+            return null;
+          }
+
+          num = Number(normalized);
+          return isFinite(num) && !isNaN(num) ? num : null;
+        }
+
+        function n3_formatMoney_(num) {
+          if (num === null || typeof num === "undefined" || !isFinite(num) || isNaN(num)) {
+            return "";
+          }
+
+          return Number(num).toFixed(2).replace(".", ",");
+        }
+
+        function n3_formatPercent_(ratio) {
+          var num;
+
+          if (ratio === null || typeof ratio === "undefined" || !isFinite(ratio) || isNaN(ratio)) {
+            return "";
+          }
+
+          num = Number(ratio) * 100;
+          return num.toFixed(1).replace(".", ",");
+        }
+
+        function n3_formatByField_(fieldName, rawValue) {
+          var parsed;
+          var text;
+
+          if (rawValue === null || typeof rawValue === "undefined") {
+            return "";
+          }
+
+          if (Object.prototype.hasOwnProperty.call(N3_MONEY_FIELDS, fieldName)) {
+            return n3_formatMoney_(n3_parseNumber_(rawValue));
+          }
+
+          if (Object.prototype.hasOwnProperty.call(N3_PERCENT_FIELDS, fieldName)) {
+            return n3_formatPercent_(n3_parseNumber_(rawValue));
+          }
+
+          if (fieldName === "temps") {
+            parsed = n3_parseNumber_(rawValue);
+            if (parsed === null) {
+              return "";
+            }
+            text = String(parsed);
+            return text.indexOf(".") !== -1 ? text.replace(".", ",") : text;
+          }
+
+          return String(rawValue);
+        }
+
         function setN3RowFieldBindings_(row, fieldName, selector) {
           var cells;
 
@@ -1718,6 +1798,7 @@
 
         function setN3FieldValue_(fieldName, variantIndex, value) {
           var node;
+          var displayValue;
 
           if (!n3Root) {
             return;
@@ -1730,10 +1811,11 @@
             return;
           }
 
+          displayValue = n3_formatByField_(fieldName, value);
           if (node.classList.contains("n3-input")) {
-            node.value = value === null || typeof value === "undefined" ? "" : String(value);
+            node.value = displayValue;
           } else {
-            node.textContent = value === null || typeof value === "undefined" ? "" : String(value);
+            node.textContent = displayValue;
           }
         }
 
@@ -2294,6 +2376,37 @@
           ui_closeC_toB({ saved: false });
         });
 
+        document.addEventListener("keydown", function(e) {
+          var el = e.target;
+          var fieldName;
+          var numeric;
+
+          if (!el || !el.classList || !el.classList.contains("n3-input")) {
+            return;
+          }
+
+          if (e.key !== "Enter") {
+            return;
+          }
+
+          e.preventDefault();
+          fieldName = el.getAttribute("data-field");
+
+          if (!fieldName || !Object.prototype.hasOwnProperty.call(N3_EDITABLE_FIELDS, fieldName)) {
+            el.blur();
+            return;
+          }
+
+          numeric = n3_parseNumber_(el.value);
+          if (numeric === null) {
+            el.blur();
+            return;
+          }
+
+          el.value = n3_formatByField_(fieldName, numeric);
+          el.blur();
+        });
+
         window.addEventListener("resize", ui_scheduleHeightSync_);
 
         if (document.fonts && document.fonts.ready) {
@@ -2323,17 +2436,6 @@
           }, 0);
         }
       });
-
-      // N3: leave field on ENTER
-      document.addEventListener("keydown", function (e) {
-      const el = e.target;
-      if (el && el.classList && el.classList.contains("n3-input")) {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          el.blur();
-        }
-      }
-    });
 
     </script>
   </body>
