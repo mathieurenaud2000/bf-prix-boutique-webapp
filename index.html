@@ -428,7 +428,7 @@
         margin: 0;
         padding: 0;
         border: none;
-        border-bottom: 2px solid #000000;
+        border-bottom: 1px solid #000000;
         background: #FFFFFF;
         color: #9E9E9E;
         font-family: "Roboto", Arial, sans-serif;
@@ -444,7 +444,11 @@
       }
 
       .n3-tab:not(:last-child) {
-        border-right: 2px solid #000000;
+        border-right: 1px solid #000000;
+      }
+
+      #n3-root > .n3-line-2px:first-child {
+        height: 1px;
       }
 
       .n3-grid {
@@ -1688,11 +1692,12 @@
         }
 
         function n3_formatByField_(fieldName, rawValue) {
-          var parsed;
-          var text;
-
           if (rawValue === null || typeof rawValue === "undefined") {
             return "";
+          }
+
+          if (fieldName === "temps") {
+            return n3_formatMoney_(n3_parseNumber_(rawValue));
           }
 
           if (Object.prototype.hasOwnProperty.call(N3_MONEY_FIELDS, fieldName)) {
@@ -1701,15 +1706,6 @@
 
           if (Object.prototype.hasOwnProperty.call(N3_PERCENT_FIELDS, fieldName)) {
             return n3_formatPercent_(n3_parseNumber_(rawValue));
-          }
-
-          if (fieldName === "temps") {
-            parsed = n3_parseNumber_(rawValue);
-            if (parsed === null) {
-              return "";
-            }
-            text = String(parsed);
-            return text.indexOf(".") !== -1 ? text.replace(".", ",") : text;
           }
 
           return String(rawValue);
