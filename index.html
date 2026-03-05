@@ -1370,12 +1370,16 @@
         var titleTool = document.getElementById("title-tool");
         var titleItemActive = document.getElementById("title-item-active");
         var n3Root = document.getElementById("n3-root");
+        var n3Tabs = document.getElementById("n3-tabs");
         var defaultCollectionTitle = titleCollectionActive.textContent;
         var appRoot = document.getElementById("app-root");
         var UI_T_MS = 600;
         var uiCache = null;
         var activeCollectionKey = null;
         var uiActiveMasterId = null;
+        var n3RenderedMasterId = null;
+        var n3ActiveMetalNom = null;
+        var n3CurrentDetail = null;
         var uiMasterDetailInFlightById = {};
         var n3BindingsReady = false;
         var N3_EDITABLE_FIELDS = {
@@ -1711,6 +1715,60 @@
           return String(rawValue);
         }
 
+        function n3_isNonEmptyText_(value) {
+          return value !== null && typeof value !== "undefined" && String(value).trim() !== "";
+        }
+
+        function n3_getTabsConfig_(variants) {
+          var seen = {};
+          var metals = [];
+          var hasTabsCandidate = variants.length > 0 && variants.every(function(variant) {
+            return (
+              variant &&
+              n3_isNonEmptyText_(variant.metal_nom) &&
+              n3_isNonEmptyText_(variant.taille)
+            );
+          });
+
+          if (!hasTabsCandidate) {
+            return {
+              tabsMode: false,
+              metals: []
+            };
+          }
+
+          variants.forEach(function(variant) {
+            var key = String(variant.metal_nom);
+
+            if (!Object.prototype.hasOwnProperty.call(seen, key)) {
+              seen[key] = true;
+              metals.push(key);
+            }
+          });
+
+          return {
+            tabsMode: metals.length >= 2,
+            metals: metals
+          };
+        }
+
+        function n3_renderTabs_(metals) {
+          if (!n3Tabs) {
+            return;
+          }
+
+          n3Tabs.textContent = "";
+          metals.forEach(function(metalNom) {
+            var button = document.createElement("button");
+            button.type = "button";
+            button.className = "n3-tab" + (metalNom === n3ActiveMetalNom ? " is-active" : "");
+            button.setAttribute("data-metal-nom", metalNom);
+            button.textContent = toTitleCaseDisplay_(metalNom);
+            n3Tabs.appendChild(button);
+          });
+          n3Tabs.classList.remove("is-hidden");
+        }
+
         function setN3RowFieldBindings_(row, fieldName, selector) {
           var cells;
 
@@ -1827,6 +1885,12 @@
             return;
           }
 
+          n3Root.setAttribute("data-n3-var-count", "0");
+          n3Root.setAttribute("data-n3-var-offset", "0");
+          if (n3Tabs) {
+            n3Tabs.classList.add("is-hidden");
+          }
+
           nodes = n3Root.querySelectorAll("[data-field][data-variant-index]");
           Array.prototype.forEach.call(nodes, function(node) {
             var fieldName = node.getAttribute("data-field");
@@ -1918,10 +1982,13 @@
 
         function renderN3Readonly(detail) {
           var titleCells;
+          var allVariants;
           var variants;
           var maxColumns;
           var count;
           var offset;
+          var masterId;
+          var tabsConfig;
           var fields;
 
           initN3ReadonlyBindings_();
@@ -1932,9 +1999,40 @@
             return;
           }
 
+          n3CurrentDetail = detail;
+          masterId = normalizeMasterId_(detail.id_master);
+          if (masterId !== null && masterId !== n3RenderedMasterId) {
+            n3RenderedMasterId = masterId;
+            n3ActiveMetalNom = null;
+          }
+
+          allVariants = normalizeN3Variants_(detail.variants);
+          tabsConfig = n3_getTabsConfig_(allVariants);
+
           titleCells = n3Root.querySelectorAll('[data-field="variant_title"]');
           maxColumns = titleCells.length;
-          variants = normalizeN3Variants_(detail.variants).slice(0, maxColumns);
+
+          if (tabsConfig.tabsMode) {
+            if (
+              n3ActiveMetalNom === null ||
+              tabsConfig.metals.indexOf(n3ActiveMetalNom) === -1
+            ) {
+              n3ActiveMetalNom = tabsConfig.metals[0];
+            }
+
+            n3_renderTabs_(tabsConfig.metals);
+            variants = allVariants.filter(function(variant) {
+              return String(variant.metal_nom) === String(n3ActiveMetalNom);
+            });
+          } else {
+            n3ActiveMetalNom = null;
+            if (n3Tabs) {
+              n3Tabs.classList.add("is-hidden");
+            }
+            variants = allVariants.slice();
+          }
+
+          variants = variants.slice(0, maxColumns);
           count = variants.length;
           offset = maxColumns - count;
           n3Root.setAttribute("data-n3-var-count", String(count));
@@ -1961,7 +2059,11 @@
               return;
             }
 
-            cell.textContent = buildN3VariantTitle_(variants[index - offset], index - offset);
+            if (tabsConfig.tabsMode) {
+              cell.textContent = toTitleCaseDisplay_(String(variants[index - offset].taille));
+            } else {
+              cell.textContent = buildN3VariantTitle_(variants[index - offset], index - offset);
+            }
           });
 
           variants.forEach(function(variant, index) {
@@ -2447,6 +2549,31 @@
         closeButtonN3.addEventListener("click", function() {
           ui_closeC_toB({ saved: false });
         });
+
+        if (n3Tabs) {
+          n3Tabs.addEventListener("click", function(event) {
+            var target = event.target;
+            var nextMetalNom;
+
+            while (target && target !== n3Tabs && !target.classList.contains("n3-tab")) {
+              target = target.parentNode;
+            }
+
+            if (!target || target === n3Tabs) {
+              return;
+            }
+
+            nextMetalNom = target.getAttribute("data-metal-nom");
+            if (!n3_isNonEmptyText_(nextMetalNom)) {
+              return;
+            }
+
+            n3ActiveMetalNom = nextMetalNom;
+            if (n3CurrentDetail) {
+              renderN3Readonly(n3CurrentDetail);
+            }
+          });
+        }
 
         document.addEventListener("keydown", function(e) {
           var el = e.target;
