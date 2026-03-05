@@ -24,6 +24,40 @@ function safeArray_(value) {
   return Array.isArray(value) ? value : [];
 }
 
+function buildUiMasterDetailData_(data) {
+  var sourceVariants = safeArray_(data.variants);
+  var variants = sourceVariants.map(function(variant) {
+    var hasRowRef = Object.prototype.hasOwnProperty.call(variant, "rowRef");
+
+    return {
+      rowRef: hasRowRef ? variant.rowRef : null,
+      id: variant.id,
+      id_master: variant.id_master,
+      metal_nom: variant.metal_nom,
+      taille: variant.taille,
+      temps: variant.temps,
+      metal_prix: variant.metal_prix,
+      matiere: variant.matiere,
+      chaine: variant.chaine,
+      boite: variant.boite,
+      fabrication_prix: variant.fabrication_prix,
+      bf_pri: variant.bf_pri,
+      bf_sug: variant.bf_sug,
+      bf_pou: variant.bf_pou,
+      bf_web_pou: variant.bf_web_pou,
+      m_pou: variant.m_pou,
+      l_pou: variant.l_pou,
+      ma_pou: variant.ma_pou
+    };
+  });
+
+  return {
+    id_master: data.id_master,
+    structureDE: data.structureDE,
+    variants: variants
+  };
+}
+
 function ui_loadState(payload) {
   var loadAllResult = api_loadAll();
   var statuses;
@@ -75,12 +109,67 @@ function ui_loadState(payload) {
   };
 }
 
+function ui_loadState_preloadAll(payload) {
+  var stateResult = ui_loadState(payload);
+  var mastersByCollection;
+  var masterDetailsById = {};
+  var seenMasterIds = {};
+  var collectionKeys;
+  var i;
+  var j;
+
+  if (!stateResult || stateResult.ok !== true || !stateResult.data) {
+    return stateResult;
+  }
+
+  mastersByCollection = stateResult.data.mastersByCollection;
+  collectionKeys = Object.keys(mastersByCollection);
+
+  for (i = 0; i < collectionKeys.length; i += 1) {
+    var collectionKey = collectionKeys[i];
+    var masters = safeArray_(mastersByCollection[collectionKey]);
+
+    for (j = 0; j < masters.length; j += 1) {
+      var master = masters[j];
+      var masterKey = String(master && master.key);
+      var numericId = Number(masterKey);
+      var loadMasterResult;
+
+      if (!masterKey || seenMasterIds[masterKey]) {
+        continue;
+      }
+
+      seenMasterIds[masterKey] = true;
+      loadMasterResult = api_loadMaster(numericId);
+      if (loadMasterResult.ok !== true) {
+        return loadMasterResult;
+      }
+
+      if (
+        !loadMasterResult.data ||
+        !Array.isArray(loadMasterResult.data.variants)
+      ) {
+        return createError("ERR_UI_MAPPING", "Invalid api_loadMaster structure", {});
+      }
+
+      masterDetailsById[masterKey] = buildUiMasterDetailData_(loadMasterResult.data);
+    }
+  }
+
+  return {
+    ok: true,
+    data: {
+      collections: stateResult.data.collections,
+      mastersByCollection: stateResult.data.mastersByCollection,
+      masterDetailsById: masterDetailsById
+    }
+  };
+}
+
 function ui_loadMaster(payload) {
   var idMaster = payload && payload.id_master;
   var loadMasterResult = api_loadMaster(idMaster);
   var data;
-  var sourceVariants;
-  var variants;
 
   if (loadMasterResult.ok !== true) {
     return loadMasterResult;
@@ -94,38 +183,9 @@ function ui_loadMaster(payload) {
   }
 
   data = loadMasterResult.data;
-  sourceVariants = safeArray_(data.variants);
-  variants = sourceVariants.map(function(variant) {
-    var hasRowRef = Object.prototype.hasOwnProperty.call(variant, "rowRef");
-
-    return {
-      rowRef: hasRowRef ? variant.rowRef : null,
-      id: variant.id,
-      id_master: variant.id_master,
-      metal_nom: variant.metal_nom,
-      taille: variant.taille,
-      temps: variant.temps,
-      metal_prix: variant.metal_prix,
-      matiere: variant.matiere,
-      chaine: variant.chaine,
-      boite: variant.boite,
-      fabrication_prix: variant.fabrication_prix,
-      bf_pri: variant.bf_pri,
-      bf_sug: variant.bf_sug,
-      bf_pou: variant.bf_pou,
-      bf_web_pou: variant.bf_web_pou,
-      m_pou: variant.m_pou,
-      l_pou: variant.l_pou,
-      ma_pou: variant.ma_pou
-    };
-  });
 
   return {
     ok: true,
-    data: {
-      id_master: data.id_master,
-      structureDE: data.structureDE,
-      variants: variants
-    }
+    data: buildUiMasterDetailData_(data)
   };
 }

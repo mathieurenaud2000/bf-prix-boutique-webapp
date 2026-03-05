@@ -1376,6 +1376,7 @@
         var n3Tabs = document.getElementById("n3-tabs");
         var defaultCollectionTitle = titleCollectionActive.textContent;
         var appRoot = document.getElementById("app-root");
+        var UI_BOOT_PRELOAD_ALL = true;
         var UI_T_MS = 600;
         var uiCache = null;
         var activeCollectionKey = null;
@@ -2086,13 +2087,19 @@
           var normalizedId = normalizeMasterId_(idMaster);
           var key;
           var requestPayload;
+          var hasCachedDetail;
 
           if (!normalizedId || typeof callback !== "function") {
             return;
           }
 
           key = String(normalizedId);
-          if (uiCache && uiCache.masterDetailsById && uiCache.masterDetailsById[key]) {
+          hasCachedDetail =
+            !!uiCache &&
+            !!uiCache.masterDetailsById &&
+            Object.prototype.hasOwnProperty.call(uiCache.masterDetailsById, key) &&
+            !!uiCache.masterDetailsById[key];
+          if (hasCachedDetail) {
             callback({
               ok: true,
               data: uiCache.masterDetailsById[key]
@@ -2142,12 +2149,26 @@
 
         function loadAndRenderN3ForMaster_(masterId) {
           var normalizedId = normalizeMasterId_(masterId);
+          var key;
+          var cachedDetail;
 
           if (!normalizedId) {
             return;
           }
 
           uiActiveMasterId = normalizedId;
+          key = String(normalizedId);
+          cachedDetail =
+            uiCache &&
+            uiCache.masterDetailsById &&
+            Object.prototype.hasOwnProperty.call(uiCache.masterDetailsById, key)
+              ? uiCache.masterDetailsById[key]
+              : null;
+          if (cachedDetail) {
+            renderN3Readonly(cachedDetail);
+            return;
+          }
+
           setN3LoadingState_(true);
           resetN3ReadonlyFields_();
 
@@ -2245,6 +2266,8 @@
         }
 
         function handleInitialStateLoad_(res) {
+          var bootMasterDetailsById;
+
           if (
             !res ||
             res.ok !== true ||
@@ -2256,10 +2279,15 @@
             return;
           }
 
+          bootMasterDetailsById =
+            res.data.masterDetailsById && typeof res.data.masterDetailsById === "object"
+              ? res.data.masterDetailsById
+              : {};
+
           uiCache = {
             collections: res.data.collections,
             mastersByCollection: res.data.mastersByCollection,
-            masterDetailsById: {}
+            masterDetailsById: bootMasterDetailsById
           };
           uiMasterDetailInFlightById = {};
           activeCollectionKey = null;
@@ -2615,10 +2643,17 @@
         stateB.style.display = "none";
         ui_clearBStageClasses_();
 
-        google.script.run
-          .withSuccessHandler(handleInitialStateLoad_)
-          .withFailureHandler(function(){})
-          .ui_loadState({ activeCollectionKey: null });
+        if (UI_BOOT_PRELOAD_ALL) {
+          google.script.run
+            .withSuccessHandler(handleInitialStateLoad_)
+            .withFailureHandler(function(){})
+            .ui_loadState_preloadAll({ activeCollectionKey: null });
+        } else {
+          google.script.run
+            .withSuccessHandler(handleInitialStateLoad_)
+            .withFailureHandler(function(){})
+            .ui_loadState({ activeCollectionKey: null });
+        }
       })();
       
       document.addEventListener("focusin", function (e) {
