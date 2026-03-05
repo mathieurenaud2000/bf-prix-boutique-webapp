@@ -170,6 +170,7 @@
         width: 500px;
         height: 200px;
         background: #FFFFFF;
+        border: 1px solid #e6e6e6;
         box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
         display: flex;
         align-items: center;
@@ -227,6 +228,7 @@
         display: flex;
         justify-content: center;
         margin-top: 100px;
+        margin-bottom: 100px;
       }
 
       #state-a[data-loading="true"] #collections-list {
@@ -1704,38 +1706,32 @@
         }
 
         function preloadCollectionMasterDetailsAtBoot_(bootData, collectionEntry, onDone, onFail) {
-          var index = 0;
-          var masterIds = Array.isArray(collectionEntry && collectionEntry.masterIds)
-            ? collectionEntry.masterIds
-            : [];
+          var collectionKey = collectionEntry && collectionEntry.collectionKey
+            ? String(collectionEntry.collectionKey)
+            : "";
 
-          function loadNextMaster() {
-            var idMaster;
+          google.script.run
+            .withSuccessHandler(function(res) {
+              var detailsMap;
 
-            if (index >= masterIds.length) {
-              onDone();
-              return;
-            }
-
-            idMaster = masterIds[index];
-            google.script.run
-              .withSuccessHandler(function(res) {
-                if (!res || res.ok !== true || !res.data) {
-                  onFail();
-                  return;
-                }
-
-                bootData.masterDetailsById[String(idMaster)] = res.data;
-                index += 1;
-                loadNextMaster();
-              })
-              .withFailureHandler(function() {
+              if (!res || res.ok !== true || !res.data) {
                 onFail();
-              })
-              .ui_loadMaster({ id_master: Number(idMaster) });
-          }
+                return;
+              }
 
-          loadNextMaster();
+              detailsMap =
+                res.data.masterDetailsById && typeof res.data.masterDetailsById === "object"
+                  ? res.data.masterDetailsById
+                  : {};
+              Object.keys(detailsMap).forEach(function(masterId) {
+                bootData.masterDetailsById[String(masterId)] = detailsMap[masterId];
+              });
+              onDone();
+            })
+            .withFailureHandler(function() {
+              onFail();
+            })
+            .ui_loadCollectionDetails({ collectionKey: collectionKey });
         }
 
         function preloadAllMasterDetailsAtBoot_(bootData, onDone, onFail) {

@@ -166,6 +166,74 @@ function ui_loadState_preloadAll(payload) {
   };
 }
 
+function ui_loadCollectionDetails(payload) {
+  var collectionKey = payload && payload.collectionKey !== null && typeof payload.collectionKey !== "undefined"
+    ? String(payload.collectionKey)
+    : "";
+  var stateResult = ui_loadState({ activeCollectionKey: null });
+  var collectionName = collectionKey;
+  var masterDetailsById = {};
+  var seenMasterIds = {};
+  var masters;
+  var i;
+
+  if (stateResult.ok !== true) {
+    return stateResult;
+  }
+
+  if (
+    !stateResult.data ||
+    !stateResult.data.mastersByCollection ||
+    typeof stateResult.data.mastersByCollection !== "object"
+  ) {
+    return createError("ERR_UI_MAPPING", "Invalid ui_loadState structure", {});
+  }
+
+  if (Array.isArray(stateResult.data.collections)) {
+    for (i = 0; i < stateResult.data.collections.length; i += 1) {
+      if (String(stateResult.data.collections[i].key) === collectionKey) {
+        collectionName = String(stateResult.data.collections[i].name || collectionKey);
+        break;
+      }
+    }
+  }
+
+  masters = safeArray_(stateResult.data.mastersByCollection[collectionKey]);
+  for (i = 0; i < masters.length; i += 1) {
+    var masterKey = String(masters[i] && masters[i].key);
+    var numericId = Number(masterKey);
+    var loadMasterResult;
+
+    if (!masterKey || seenMasterIds[masterKey]) {
+      continue;
+    }
+
+    seenMasterIds[masterKey] = true;
+    loadMasterResult = api_loadMaster(numericId);
+    if (loadMasterResult.ok !== true) {
+      return loadMasterResult;
+    }
+
+    if (
+      !loadMasterResult.data ||
+      !Array.isArray(loadMasterResult.data.variants)
+    ) {
+      return createError("ERR_UI_MAPPING", "Invalid api_loadMaster structure", {});
+    }
+
+    masterDetailsById[masterKey] = buildUiMasterDetailData_(loadMasterResult.data);
+  }
+
+  return {
+    ok: true,
+    data: {
+      collectionKey: collectionKey,
+      collectionName: collectionName,
+      masterDetailsById: masterDetailsById
+    }
+  };
+}
+
 function ui_loadMaster(payload) {
   var idMaster = payload && payload.id_master;
   var loadMasterResult = api_loadMaster(idMaster);
