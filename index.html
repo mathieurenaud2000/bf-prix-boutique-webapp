@@ -162,16 +162,71 @@
         animation: initial-load-spin 0.9s linear infinite;
       }
 
-      #state-a[data-loading="true"] .list-wrapper {
+      #initial-load-ui {
+        display: none;
+      }
+
+      .initial-load-box {
+        width: 500px;
+        height: 200px;
+        background: #FFFFFF;
+        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
         display: flex;
         align-items: center;
         justify-content: center;
       }
 
-      #state-a[data-loading="true"] #initial-load-spinner {
+      .initial-load-inner {
+        width: 400px;
+        height: 50px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+
+      .initial-load-progress {
+        width: 400px;
+        height: 3px;
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: 1fr;
+        column-gap: 2px;
+        align-items: end;
+      }
+
+      .initial-load-segment {
+        height: 1px;
+        background: #9E9E9E;
+        transition: height 200ms ease, background-color 200ms ease;
+      }
+
+      .initial-load-segment.is-loaded {
+        height: 3px;
+        background: #16A34A;
+      }
+
+      .initial-load-text {
+        color: #9E9E9E;
+        font-family: "Roboto", sans-serif;
+        font-size: 16px;
+        line-height: 16px;
+        font-weight: 400;
+        text-align: left;
+      }
+
+      #state-a[data-loading="true"] .list-wrapper {
         display: block;
+        overflow: visible;
+      }
+
+      #state-a[data-loading="true"] #initial-load-spinner {
+        display: none;
+      }
+
+      #state-a[data-loading="true"] #initial-load-ui {
+        display: flex;
+        justify-content: center;
         margin-top: 100px;
-        margin-bottom: 100px;
       }
 
       #state-a[data-loading="true"] #collections-list {
@@ -952,6 +1007,14 @@
             </div>
             <div class="header-divider"></div>
             <div class="list-wrapper">
+              <div id="initial-load-ui" aria-live="polite">
+                <div class="initial-load-box">
+                  <div class="initial-load-inner">
+                    <div id="initial-load-progress" class="initial-load-progress" aria-hidden="true"></div>
+                    <div id="initial-load-text" class="initial-load-text">Téléchargement de la collection Collection</div>
+                  </div>
+                </div>
+              </div>
               <div id="initial-load-spinner" aria-hidden="true"></div>
               <ul id="collections-list">
                 <li class="collection-row" data-status="ok" data-active="false" data-hoverable="true" data-collection-key="Perle">
@@ -1374,6 +1437,9 @@
         var titleItemActive = document.getElementById("title-item-active");
         var n3Root = document.getElementById("n3-root");
         var n3Tabs = document.getElementById("n3-tabs");
+        var initialLoadUi = document.getElementById("initial-load-ui");
+        var initialLoadProgress = document.getElementById("initial-load-progress");
+        var initialLoadText = document.getElementById("initial-load-text");
         var defaultCollectionTitle = titleCollectionActive.textContent;
         var appRoot = document.getElementById("app-root");
         var UI_BOOT_PRELOAD_ALL = true;
@@ -1511,6 +1577,226 @@
               titleTool.style.opacity = "1";
             });
           });
+        }
+
+        function setBootLoadingText_(collectionLabel) {
+          var label = collectionLabel;
+
+          if (!initialLoadText) {
+            return;
+          }
+
+          if (label === null || typeof label === "undefined" || String(label).trim() === "") {
+            label = defaultCollectionTitle;
+          }
+
+          initialLoadText.textContent = "Téléchargement de la collection " + toTitleCaseDisplay_(String(label));
+        }
+
+        function setBootLoadingErrorText_() {
+          if (!initialLoadText) {
+            return;
+          }
+
+          initialLoadText.textContent = "Erreur de chargement";
+        }
+
+        function setBootProgressTotal_(total) {
+          var i;
+          var segment;
+          var safeTotal = Number(total);
+
+          if (!initialLoadProgress) {
+            return;
+          }
+
+          if (!isFinite(safeTotal) || isNaN(safeTotal) || safeTotal < 0) {
+            safeTotal = 0;
+          }
+
+          initialLoadProgress.textContent = "";
+          for (i = 0; i < safeTotal; i += 1) {
+            segment = document.createElement("span");
+            segment.className = "initial-load-segment";
+            initialLoadProgress.appendChild(segment);
+          }
+        }
+
+        function setBootProgressLoaded_(loadedCount) {
+          var segments;
+          var safeLoaded = Number(loadedCount);
+
+          if (!initialLoadProgress) {
+            return;
+          }
+
+          if (!isFinite(safeLoaded) || isNaN(safeLoaded) || safeLoaded < 0) {
+            safeLoaded = 0;
+          }
+
+          segments = initialLoadProgress.children;
+          Array.prototype.forEach.call(segments, function(segment, index) {
+            if (index < safeLoaded) {
+              segment.classList.add("is-loaded");
+            } else {
+              segment.classList.remove("is-loaded");
+            }
+          });
+        }
+
+        function buildBootMasterQueue_(collections, mastersByCollection) {
+          var collectionOrder = [];
+          var collectionNameByKey = {};
+          var queue = [];
+          var seenMasterIds = {};
+
+          (Array.isArray(collections) ? collections : []).forEach(function(collectionItem) {
+            var key = collectionItem && collectionItem.key !== null && typeof collectionItem.key !== "undefined"
+              ? String(collectionItem.key)
+              : "";
+
+            if (!key) {
+              return;
+            }
+
+            if (collectionOrder.indexOf(key) === -1) {
+              collectionOrder.push(key);
+            }
+            collectionNameByKey[key] = collectionItem.name || key;
+          });
+
+          Object.keys(mastersByCollection || {}).forEach(function(collectionKey) {
+            var key = String(collectionKey);
+
+            if (collectionOrder.indexOf(key) === -1) {
+              collectionOrder.push(key);
+            }
+            if (!Object.prototype.hasOwnProperty.call(collectionNameByKey, key)) {
+              collectionNameByKey[key] = key;
+            }
+          });
+
+          collectionOrder.forEach(function(collectionKey) {
+            (Array.isArray((mastersByCollection || {})[collectionKey]) ? (mastersByCollection || {})[collectionKey] : []).forEach(function(masterItem) {
+              var idMaster = normalizeMasterId_(masterItem && masterItem.key);
+
+              if (!idMaster || seenMasterIds[idMaster]) {
+                return;
+              }
+
+              seenMasterIds[idMaster] = true;
+              queue.push({
+                idMaster: idMaster,
+                collectionKey: collectionKey,
+                collectionName: collectionNameByKey[collectionKey] || collectionKey
+              });
+            });
+          });
+
+          return queue;
+        }
+
+        function preloadAllMasterDetailsAtBoot_(bootData, onDone, onFail) {
+          var queue = buildBootMasterQueue_(bootData.collections, bootData.mastersByCollection);
+          var loadedCount = 0;
+          var nextIndex = 0;
+
+          setBootProgressTotal_(queue.length);
+          setBootProgressLoaded_(0);
+
+          if (queue.length === 0) {
+            onDone();
+            return;
+          }
+
+          function loadNext() {
+            var currentEntry;
+
+            if (nextIndex >= queue.length) {
+              onDone();
+              return;
+            }
+
+            currentEntry = queue[nextIndex];
+            setBootLoadingText_(currentEntry.collectionName);
+
+            google.script.run
+              .withSuccessHandler(function(res) {
+                if (!res || res.ok !== true || !res.data) {
+                  onFail();
+                  return;
+                }
+
+                bootData.masterDetailsById[String(currentEntry.idMaster)] = res.data;
+                nextIndex += 1;
+                loadedCount += 1;
+                setBootProgressLoaded_(loadedCount);
+                loadNext();
+              })
+              .withFailureHandler(function() {
+                onFail();
+              })
+              .ui_loadMaster({ id_master: Number(currentEntry.idMaster) });
+          }
+
+          loadNext();
+        }
+
+        function startInitialBootLoad_() {
+          stateA.setAttribute("data-loading", "true");
+          setBootProgressTotal_(0);
+          setBootProgressLoaded_(0);
+          setBootLoadingText_(defaultCollectionTitle);
+
+          if (UI_BOOT_PRELOAD_ALL) {
+            google.script.run
+              .withSuccessHandler(function(res) {
+                var bootData;
+
+                if (
+                  !res ||
+                  res.ok !== true ||
+                  !res.data ||
+                  !Array.isArray(res.data.collections) ||
+                  !res.data.mastersByCollection ||
+                  typeof res.data.mastersByCollection !== "object"
+                ) {
+                  setBootLoadingErrorText_();
+                  return;
+                }
+
+                bootData = {
+                  collections: res.data.collections,
+                  mastersByCollection: res.data.mastersByCollection,
+                  masterDetailsById: {}
+                };
+
+                preloadAllMasterDetailsAtBoot_(
+                  bootData,
+                  function() {
+                    handleInitialStateLoad_({
+                      ok: true,
+                      data: bootData
+                    });
+                  },
+                  function() {
+                    setBootLoadingErrorText_();
+                  }
+                );
+              })
+              .withFailureHandler(function() {
+                setBootLoadingErrorText_();
+              })
+              .ui_loadState({ activeCollectionKey: null });
+            return;
+          }
+
+          google.script.run
+            .withSuccessHandler(handleInitialStateLoad_)
+            .withFailureHandler(function() {
+              setBootLoadingErrorText_();
+            })
+            .ui_loadState({ activeCollectionKey: null });
         }
 
         function setActiveRow(rowList, activeRow) {
@@ -2642,18 +2928,7 @@
         stateA.style.display = "block";
         stateB.style.display = "none";
         ui_clearBStageClasses_();
-
-        if (UI_BOOT_PRELOAD_ALL) {
-          google.script.run
-            .withSuccessHandler(handleInitialStateLoad_)
-            .withFailureHandler(function(){})
-            .ui_loadState_preloadAll({ activeCollectionKey: null });
-        } else {
-          google.script.run
-            .withSuccessHandler(handleInitialStateLoad_)
-            .withFailureHandler(function(){})
-            .ui_loadState({ activeCollectionKey: null });
-        }
+        startInitialBootLoad_();
       })();
       
       document.addEventListener("focusin", function (e) {
