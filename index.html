@@ -1457,7 +1457,9 @@
         var n3RenderedMasterId = null;
         var n3ActiveMetalNom = null;
         var n3CurrentDetail = null;
-        var n3RuntimeByMasterId = {};
+        var n3ReferenceByMasterId = {};
+        var n3ActiveWorkState = null;
+        var n3ActiveWorkMasterId = null;
         var n3VisibleVariantKeyByUiCol = {};
         var uiMasterDetailInFlightById = {};
         var uiMasterRenderRequestId = 0;
@@ -2035,96 +2037,100 @@
           };
         }
 
-        function n3_getRuntimeMasterId_() {
-          return normalizeMasterId_(uiActiveMasterId !== null ? uiActiveMasterId : n3RenderedMasterId);
+        function n3_cloneEditableStateMap_(sourceMap) {
+          var clone = {};
+
+          Object.keys(sourceMap || {}).forEach(function(runtimeKey) {
+            clone[runtimeKey] = {
+              temps: sourceMap[runtimeKey].temps,
+              metal_prix: sourceMap[runtimeKey].metal_prix,
+              matiere: sourceMap[runtimeKey].matiere,
+              chaine: sourceMap[runtimeKey].chaine,
+              boite: sourceMap[runtimeKey].boite,
+              bf_pri: sourceMap[runtimeKey].bf_pri
+            };
+          });
+
+          return clone;
         }
 
-        function n3_ensureRuntimeStateForDetail_(detail, allVariants) {
+        function n3_buildReferenceStateForDetail_(detail, allVariants) {
           var masterId = normalizeMasterId_(detail && detail.id_master);
-          var masterState;
+          var editableByVariantKey = {};
 
           if (!masterId) {
             return null;
           }
 
-          if (!Object.prototype.hasOwnProperty.call(n3RuntimeByMasterId, masterId)) {
-            n3RuntimeByMasterId[masterId] = {
-              editableByVariantKey: {}
-            };
-          }
-
-          masterState = n3RuntimeByMasterId[masterId];
           allVariants.forEach(function(variant, index) {
             var runtimeKey = n3_getVariantRuntimeKey_(variant, index);
-
-            if (!Object.prototype.hasOwnProperty.call(masterState.editableByVariantKey, runtimeKey)) {
-              masterState.editableByVariantKey[runtimeKey] = n3_createEditableRuntimeState_(variant);
-            }
+            editableByVariantKey[runtimeKey] = n3_createEditableRuntimeState_(variant);
           });
 
-          return masterState;
+          n3ReferenceByMasterId[masterId] = {
+            editableByVariantKey: editableByVariantKey
+          };
+
+          return n3ReferenceByMasterId[masterId];
         }
 
-        function n3_getRuntimeEditableValue_(masterId, runtimeKey, fieldName, fallbackValue) {
-          var masterState;
-
+        function n3_resetActiveWorkState_(masterId) {
           if (
             !masterId ||
+            !n3ReferenceByMasterId[masterId] ||
+            !n3ReferenceByMasterId[masterId].editableByVariantKey
+          ) {
+            n3ActiveWorkMasterId = null;
+            n3ActiveWorkState = null;
+            return;
+          }
+
+          n3ActiveWorkMasterId = masterId;
+          n3ActiveWorkState = {
+            editableByVariantKey: n3_cloneEditableStateMap_(
+              n3ReferenceByMasterId[masterId].editableByVariantKey
+            )
+          };
+        }
+
+        function n3_getWorkEditableValue_(runtimeKey, fieldName, fallbackValue) {
+          if (
             !runtimeKey ||
+            !n3ActiveWorkState ||
+            !n3ActiveWorkState.editableByVariantKey ||
+            !n3ActiveWorkState.editableByVariantKey[runtimeKey] ||
             !Object.prototype.hasOwnProperty.call(N3_EDITABLE_FIELDS, fieldName)
           ) {
             return fallbackValue;
           }
 
-          masterState = n3RuntimeByMasterId[masterId];
-          if (
-            !masterState ||
-            !masterState.editableByVariantKey ||
-            !masterState.editableByVariantKey[runtimeKey]
-          ) {
-            return fallbackValue;
-          }
-
-          if (!Object.prototype.hasOwnProperty.call(masterState.editableByVariantKey[runtimeKey], fieldName)) {
-            return fallbackValue;
-          }
-
-          return masterState.editableByVariantKey[runtimeKey][fieldName];
+          return n3ActiveWorkState.editableByVariantKey[runtimeKey][fieldName];
         }
 
-        function n3_setRuntimeEditableValue_(masterId, runtimeKey, fieldName, value) {
-          var masterState;
-
+        function n3_setWorkEditableValue_(runtimeKey, fieldName, value) {
           if (
-            !masterId ||
             !runtimeKey ||
+            !n3ActiveWorkState ||
+            !n3ActiveWorkState.editableByVariantKey ||
             !Object.prototype.hasOwnProperty.call(N3_EDITABLE_FIELDS, fieldName)
           ) {
             return;
           }
 
-          if (!Object.prototype.hasOwnProperty.call(n3RuntimeByMasterId, masterId)) {
-            n3RuntimeByMasterId[masterId] = {
-              editableByVariantKey: {}
-            };
-          }
-          masterState = n3RuntimeByMasterId[masterId];
-
-          if (!Object.prototype.hasOwnProperty.call(masterState.editableByVariantKey, runtimeKey)) {
-            masterState.editableByVariantKey[runtimeKey] = n3_createEditableRuntimeState_(null);
+          if (!Object.prototype.hasOwnProperty.call(n3ActiveWorkState.editableByVariantKey, runtimeKey)) {
+            n3ActiveWorkState.editableByVariantKey[runtimeKey] = n3_createEditableRuntimeState_(null);
           }
 
-          masterState.editableByVariantKey[runtimeKey][fieldName] = value;
+          n3ActiveWorkState.editableByVariantKey[runtimeKey][fieldName] = value;
         }
 
         function n3_updateRuntimeFromInput_(inputEl, fieldName, numericValue) {
-          var runtimeMasterId = n3_getRuntimeMasterId_();
           var variantIndex;
           var runtimeKey;
 
           if (
             !inputEl ||
-            !runtimeMasterId ||
+            !n3ActiveWorkState ||
             !Object.prototype.hasOwnProperty.call(N3_EDITABLE_FIELDS, fieldName)
           ) {
             return;
@@ -2140,7 +2146,7 @@
             return;
           }
 
-          n3_setRuntimeEditableValue_(runtimeMasterId, runtimeKey, fieldName, numericValue);
+          n3_setWorkEditableValue_(runtimeKey, fieldName, numericValue);
         }
 
         function n3_syncVisibleInputsToRuntime_() {
@@ -2447,9 +2453,9 @@
           var count;
           var offset;
           var masterId;
+          var isMasterChanged;
           var tabsConfig;
           var fields;
-          var masterRuntimeId;
 
           initN3ReadonlyBindings_();
           resetN3ReadonlyFields_();
@@ -2461,13 +2467,21 @@
 
           n3CurrentDetail = detail;
           masterId = normalizeMasterId_(detail.id_master);
-          if (masterId !== null && masterId !== n3RenderedMasterId) {
+          isMasterChanged = masterId !== null && masterId !== n3RenderedMasterId;
+          if (isMasterChanged) {
             n3RenderedMasterId = masterId;
             n3ActiveMetalNom = null;
           }
 
           allVariants = normalizeN3Variants_(detail.variants);
-          n3_ensureRuntimeStateForDetail_(detail, allVariants);
+          n3_buildReferenceStateForDetail_(detail, allVariants);
+          if (
+            isMasterChanged ||
+            !n3ActiveWorkState ||
+            n3ActiveWorkMasterId !== masterId
+          ) {
+            n3_resetActiveWorkState_(masterId);
+          }
           allVariantsWithKeys = allVariants.map(function(variant, index) {
             return {
               variant: variant,
@@ -2502,7 +2516,6 @@
           visibleVariantsWithKeys = visibleVariantsWithKeys.slice(0, maxColumns);
           count = visibleVariantsWithKeys.length;
           offset = maxColumns - count;
-          masterRuntimeId = n3_getRuntimeMasterId_();
           n3Root.setAttribute("data-n3-var-count", String(count));
           n3Root.setAttribute("data-n3-var-offset", String(offset));
           n3VisibleVariantKeyByUiCol = {};
@@ -2545,8 +2558,7 @@
 
             fields.forEach(function(fieldName) {
               if (fieldName === "salaire") {
-                tempsForSalaire = n3_getRuntimeEditableValue_(
-                  masterRuntimeId,
+                tempsForSalaire = n3_getWorkEditableValue_(
                   runtimeKey,
                   "temps",
                   variant.temps
@@ -2559,12 +2571,7 @@
                 setN3FieldValue_(
                   fieldName,
                   uiCol,
-                  n3_getRuntimeEditableValue_(
-                    masterRuntimeId,
-                    runtimeKey,
-                    fieldName,
-                    variant[fieldName]
-                  )
+                  n3_getWorkEditableValue_(runtimeKey, fieldName, variant[fieldName])
                 );
                 return;
               }
@@ -2661,6 +2668,10 @@
           }
 
           uiActiveMasterId = normalizedId;
+          if (n3ActiveWorkMasterId !== null && String(n3ActiveWorkMasterId) !== String(normalizedId)) {
+            n3ActiveWorkMasterId = null;
+            n3ActiveWorkState = null;
+          }
           requestId = uiMasterRenderRequestId + 1;
           uiMasterRenderRequestId = requestId;
           key = String(normalizedId);
@@ -2944,6 +2955,10 @@
           }
 
           token = ui_beginTransition();
+          n3ActiveWorkMasterId = null;
+          n3ActiveWorkState = null;
+          n3RenderedMasterId = null;
+          n3CurrentDetail = null;
           if (!options || options.saved !== true) {
             setActiveRow(mastersList.querySelectorAll(".collection-row"), null);
           }
