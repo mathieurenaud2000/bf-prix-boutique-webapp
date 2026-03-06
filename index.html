@@ -1461,6 +1461,7 @@
         var n3ActiveWorkState = null;
         var n3ActiveWorkMasterId = null;
         var n3VisibleVariantKeyByUiCol = {};
+        var n3VariantSourceByRuntimeKey = {};
         var uiMasterDetailInFlightById = {};
         var uiMasterRenderRequestId = 0;
         var n3BindingsReady = false;
@@ -2004,6 +2005,100 @@
           return Number(temps) * N3_LABOR_HOURLY_RATE;
         }
 
+        function n3_toNumberOrZero_(rawValue) {
+          var parsed = n3_parseNumber_(rawValue);
+          return parsed === null ? 0 : Number(parsed);
+        }
+
+        function n3_getEditableValuesForRuntime_(runtimeKey, fallbackVariant) {
+          var variant = fallbackVariant || {};
+
+          return {
+            temps: n3_getWorkEditableValue_(runtimeKey, "temps", variant.temps),
+            metal_prix: n3_getWorkEditableValue_(runtimeKey, "metal_prix", variant.metal_prix),
+            matiere: n3_getWorkEditableValue_(runtimeKey, "matiere", variant.matiere),
+            chaine: n3_getWorkEditableValue_(runtimeKey, "chaine", variant.chaine),
+            boite: n3_getWorkEditableValue_(runtimeKey, "boite", variant.boite),
+            bf_pri: n3_getWorkEditableValue_(runtimeKey, "bf_pri", variant.bf_pri)
+          };
+        }
+
+        function n3_computeDerivedValues_(editableValues) {
+          var temps = n3_toNumberOrZero_(editableValues.temps);
+          var metal_prix = n3_toNumberOrZero_(editableValues.metal_prix);
+          var matiere = n3_toNumberOrZero_(editableValues.matiere);
+          var chaine = n3_toNumberOrZero_(editableValues.chaine);
+          var boite = n3_toNumberOrZero_(editableValues.boite);
+          var bf_pri = n3_toNumberOrZero_(editableValues.bf_pri);
+          var salaire = temps * 35;
+          var cout_base = salaire + metal_prix + matiere + chaine + boite;
+          var bf_sug = (cout_base + 15) / (0.5165 * 0.435);
+          var bf_fix = bf_pri * 0.2835;
+          var bf_sal = 20;
+          var bf_com = bf_pri * 0.05;
+          var bf_var = cout_base + bf_sal + bf_com;
+          var bf_cou = bf_fix + bf_var;
+          var bf_pou = bf_pri !== 0 ? (bf_pri - bf_cou) / bf_pri : null;
+          var bf_web_ges = 10;
+          var bf_web_pur = 15;
+          var bf_web_squ = bf_pri * 0.0355;
+          var bf_web_fix = bf_pri * 0.2835;
+          var bf_web_var = cout_base + bf_web_ges + bf_web_pur + bf_web_squ;
+          var bf_web_cou = bf_web_var + bf_web_fix;
+          var bf_web_pro = bf_pri - bf_web_cou;
+          var bf_web_pou = bf_pri !== 0 ? bf_web_pro / bf_pri : null;
+          var m_pri = bf_pri / 2;
+          var m_com = m_pri * 0.05;
+          var m_pur = 15;
+          var m_fix = m_pri * 0.2835;
+          var m_cou = cout_base + m_pur + m_com + m_fix;
+          var m_pro = m_pri - m_cou;
+          var m_pou = m_pri !== 0 ? m_pro / m_pri : null;
+          var l_pri = bf_pri / 2;
+          var l_cou = m_cou + (l_pri * 0.04) + (l_pri * 0.02);
+          var l_pro = l_pri - l_cou;
+          var l_pou = l_pri !== 0 ? l_pro / l_pri : null;
+          var ma_pri = bf_pri * 0.435;
+          var ma_com = ma_pri * 0;
+          var ma_fix = ma_pri * 0.2835;
+          var ma_cou = cout_base + 15 + ma_com + ma_fix;
+          var ma_pro = ma_pri - ma_cou;
+          var ma_pou = ma_pri !== 0 ? ma_pro / ma_pri : null;
+
+          return {
+            salaire: salaire,
+            bf_sug: bf_sug,
+            bf_pou: bf_pou,
+            bf_web_pou: bf_web_pou,
+            m_pou: m_pou,
+            l_pou: l_pou,
+            ma_pou: ma_pou
+          };
+        }
+
+        function n3_renderCalculatedFieldsForUiColumn_(uiCol) {
+          var runtimeKey = n3VisibleVariantKeyByUiCol[String(uiCol)];
+          var fallbackVariant;
+          var editableValues;
+          var derivedValues;
+
+          if (!runtimeKey) {
+            return;
+          }
+
+          fallbackVariant = n3VariantSourceByRuntimeKey[runtimeKey] || null;
+          editableValues = n3_getEditableValuesForRuntime_(runtimeKey, fallbackVariant);
+          derivedValues = n3_computeDerivedValues_(editableValues);
+
+          setN3FieldValue_("salaire", uiCol, derivedValues.salaire);
+          setN3FieldValue_("bf_sug", uiCol, derivedValues.bf_sug);
+          setN3FieldValue_("bf_pou", uiCol, derivedValues.bf_pou);
+          setN3FieldValue_("bf_web_pou", uiCol, derivedValues.bf_web_pou);
+          setN3FieldValue_("m_pou", uiCol, derivedValues.m_pou);
+          setN3FieldValue_("l_pou", uiCol, derivedValues.l_pou);
+          setN3FieldValue_("ma_pou", uiCol, derivedValues.ma_pou);
+        }
+
         function n3_getVariantRuntimeKey_(variant, index) {
           if (
             variant &&
@@ -2351,6 +2446,7 @@
           n3Root.setAttribute("data-n3-var-count", "0");
           n3Root.setAttribute("data-n3-var-offset", "0");
           n3VisibleVariantKeyByUiCol = {};
+          n3VariantSourceByRuntimeKey = {};
           if (n3Tabs) {
             n3Tabs.classList.add("is-hidden");
           }
@@ -2455,7 +2551,6 @@
           var masterId;
           var isMasterChanged;
           var tabsConfig;
-          var fields;
 
           initN3ReadonlyBindings_();
           resetN3ReadonlyFields_();
@@ -2488,6 +2583,10 @@
               runtimeKey: n3_getVariantRuntimeKey_(variant, index)
             };
           });
+          n3VariantSourceByRuntimeKey = {};
+          allVariantsWithKeys.forEach(function(entry) {
+            n3VariantSourceByRuntimeKey[entry.runtimeKey] = entry.variant;
+          });
           tabsConfig = n3_getTabsConfig_(allVariants);
 
           titleCells = n3Root.querySelectorAll('[data-field="variant_title"]');
@@ -2519,21 +2618,6 @@
           n3Root.setAttribute("data-n3-var-count", String(count));
           n3Root.setAttribute("data-n3-var-offset", String(offset));
           n3VisibleVariantKeyByUiCol = {};
-          fields = [
-            "temps",
-            "salaire",
-            "metal_prix",
-            "matiere",
-            "chaine",
-            "boite",
-            "bf_sug",
-            "bf_pri",
-            "bf_pou",
-            "bf_web_pou",
-            "m_pou",
-            "l_pou",
-            "ma_pou"
-          ];
 
           Array.prototype.forEach.call(titleCells, function(cell, index) {
             if (index < offset) {
@@ -2549,35 +2633,19 @@
           });
 
           visibleVariantsWithKeys.forEach(function(entry, index) {
-            var variant = entry.variant;
             var runtimeKey = entry.runtimeKey;
             var uiCol = offset + index;
-            var tempsForSalaire;
+            var editableValues = n3_getEditableValuesForRuntime_(runtimeKey, entry.variant);
 
             n3VisibleVariantKeyByUiCol[String(uiCol)] = runtimeKey;
 
-            fields.forEach(function(fieldName) {
-              if (fieldName === "salaire") {
-                tempsForSalaire = n3_getWorkEditableValue_(
-                  runtimeKey,
-                  "temps",
-                  variant.temps
-                );
-                setN3FieldValue_(fieldName, uiCol, n3_computeLaborAmount_(tempsForSalaire));
-                return;
-              }
-
-              if (Object.prototype.hasOwnProperty.call(N3_EDITABLE_FIELDS, fieldName)) {
-                setN3FieldValue_(
-                  fieldName,
-                  uiCol,
-                  n3_getWorkEditableValue_(runtimeKey, fieldName, variant[fieldName])
-                );
-                return;
-              }
-
-              setN3FieldValue_(fieldName, uiCol, variant[fieldName]);
-            });
+            setN3FieldValue_("temps", uiCol, editableValues.temps);
+            setN3FieldValue_("metal_prix", uiCol, editableValues.metal_prix);
+            setN3FieldValue_("matiere", uiCol, editableValues.matiere);
+            setN3FieldValue_("chaine", uiCol, editableValues.chaine);
+            setN3FieldValue_("boite", uiCol, editableValues.boite);
+            setN3FieldValue_("bf_pri", uiCol, editableValues.bf_pri);
+            n3_renderCalculatedFieldsForUiColumn_(uiCol);
           });
 
           setN3LoadingState_(false);
@@ -3150,11 +3218,9 @@
 
           n3_updateRuntimeFromInput_(el, fieldName, numeric);
           el.value = n3_formatByField_(fieldName, numeric);
-          if (fieldName === "temps") {
-            variantIndex = Number(el.getAttribute("data-variant-index"));
-            if (!isNaN(variantIndex)) {
-              setN3FieldValue_("salaire", variantIndex, n3_computeLaborAmount_(numeric));
-            }
+          variantIndex = Number(el.getAttribute("data-variant-index"));
+          if (!isNaN(variantIndex)) {
+            n3_renderCalculatedFieldsForUiColumn_(variantIndex);
           }
           el.blur();
         });
@@ -3180,16 +3246,12 @@
           }
 
           n3_updateRuntimeFromInput_(el, fieldName, numeric);
-          if (fieldName !== "temps") {
-            return;
-          }
-
           variantIndex = Number(el.getAttribute("data-variant-index"));
           if (isNaN(variantIndex)) {
             return;
           }
 
-          setN3FieldValue_("salaire", variantIndex, n3_computeLaborAmount_(numeric));
+          n3_renderCalculatedFieldsForUiColumn_(variantIndex);
         });
 
         window.addEventListener("resize", ui_scheduleHeightSync_);
