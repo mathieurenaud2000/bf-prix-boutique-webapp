@@ -1306,8 +1306,8 @@
                   <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">h</div></div></div>
                   <div class="n3-cell"><div class="n3-vu"><input class="n3-input" type="text" value="0"><div class="n3-unit">h</div></div></div>
                 </div>
-                <div class="n3-grid-row">
-                  <div class="n3-label"></div>
+                <div class="n3-grid-row n3-grid-row-suggested">
+                  <div class="n3-label">Taux horaire 35$</div>
                   <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
                   <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
                   <div class="n3-cell"><div class="n3-vu"><div class="n3-ro">0</div><div class="n3-unit">$</div></div></div>
@@ -1469,7 +1469,7 @@
           bf_pri: true
         };
         var N3_MONEY_FIELDS = {
-          fabrication_prix: true,
+          salaire: true,
           metal_prix: true,
           matiere: true,
           chaine: true,
@@ -1484,6 +1484,7 @@
           l_pou: true,
           ma_pou: true
         };
+        var N3_LABOR_HOURLY_RATE = 35;
         var UI_IS_TRANSITIONING = false;
         var transitionId = 0;
         var heightSyncScheduled = false;
@@ -1989,6 +1990,16 @@
           return String(rawValue);
         }
 
+        function n3_computeLaborAmount_(tempsRaw) {
+          var temps = n3_parseNumber_(tempsRaw);
+
+          if (temps === null) {
+            return null;
+          }
+
+          return Number(temps) * N3_LABOR_HOURLY_RATE;
+        }
+
         function n3_isNonEmptyText_(value) {
           return value !== null && typeof value !== "undefined" && String(value).trim() !== "";
         }
@@ -2123,7 +2134,7 @@
             : null;
 
           setN3RowFieldBindings_(laborRow, "temps", ".n3-input");
-          setN3RowFieldBindings_(fabricationPriceRow, "fabrication_prix", ".n3-ro");
+          setN3RowFieldBindings_(fabricationPriceRow, "salaire", ".n3-ro");
           setN3RowFieldBindings_(rowByLabel["Métal"], "metal_prix", ".n3-input");
           setN3RowFieldBindings_(rowByLabel["Matière"], "matiere", ".n3-input");
           setN3RowFieldBindings_(rowByLabel["Chaîne"], "chaine", ".n3-input");
@@ -2320,7 +2331,7 @@
           n3Root.setAttribute("data-n3-var-offset", String(offset));
           fields = [
             "temps",
-            "fabrication_prix",
+            "salaire",
             "metal_prix",
             "matiere",
             "chaine",
@@ -2351,6 +2362,11 @@
             var uiCol = offset + index;
 
             fields.forEach(function(fieldName) {
+              if (fieldName === "salaire") {
+                setN3FieldValue_(fieldName, uiCol, n3_computeLaborAmount_(variant.temps));
+                return;
+              }
+
               setN3FieldValue_(fieldName, uiCol, variant[fieldName]);
             });
           });
@@ -2886,6 +2902,7 @@
           var el = e.target;
           var fieldName;
           var numeric;
+          var variantIndex;
 
           if (!el || !el.classList || !el.classList.contains("n3-input")) {
             return;
@@ -2910,7 +2927,35 @@
           }
 
           el.value = n3_formatByField_(fieldName, numeric);
+          if (fieldName === "temps") {
+            variantIndex = Number(el.getAttribute("data-variant-index"));
+            if (!isNaN(variantIndex)) {
+              setN3FieldValue_("salaire", variantIndex, n3_computeLaborAmount_(numeric));
+            }
+          }
           el.blur();
+        });
+
+        document.addEventListener("input", function(e) {
+          var el = e.target;
+          var fieldName;
+          var variantIndex;
+
+          if (!el || !el.classList || !el.classList.contains("n3-input")) {
+            return;
+          }
+
+          fieldName = el.getAttribute("data-field");
+          if (fieldName !== "temps") {
+            return;
+          }
+
+          variantIndex = Number(el.getAttribute("data-variant-index"));
+          if (isNaN(variantIndex)) {
+            return;
+          }
+
+          setN3FieldValue_("salaire", variantIndex, n3_computeLaborAmount_(el.value));
         });
 
         window.addEventListener("resize", ui_scheduleHeightSync_);
