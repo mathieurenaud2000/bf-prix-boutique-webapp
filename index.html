@@ -1457,6 +1457,8 @@
         var n3RenderedMasterId = null;
         var n3ActiveMetalNom = null;
         var n3CurrentDetail = null;
+        var n3RuntimeByMasterId = {};
+        var n3VisibleVariantKeyByUiCol = {};
         var uiMasterDetailInFlightById = {};
         var uiMasterRenderRequestId = 0;
         var n3BindingsReady = false;
@@ -2000,6 +2002,169 @@
           return Number(temps) * N3_LABOR_HOURLY_RATE;
         }
 
+        function n3_getVariantRuntimeKey_(variant, index) {
+          if (
+            variant &&
+            variant.rowRef !== null &&
+            typeof variant.rowRef !== "undefined" &&
+            String(variant.rowRef) !== ""
+          ) {
+            return "rowRef:" + String(variant.rowRef);
+          }
+
+          if (
+            variant &&
+            variant.id !== null &&
+            typeof variant.id !== "undefined" &&
+            String(variant.id) !== ""
+          ) {
+            return "id:" + String(variant.id);
+          }
+
+          return "idx:" + String(index);
+        }
+
+        function n3_createEditableRuntimeState_(variant) {
+          return {
+            temps: variant ? variant.temps : null,
+            metal_prix: variant ? variant.metal_prix : null,
+            matiere: variant ? variant.matiere : null,
+            chaine: variant ? variant.chaine : null,
+            boite: variant ? variant.boite : null,
+            bf_pri: variant ? variant.bf_pri : null
+          };
+        }
+
+        function n3_getRuntimeMasterId_() {
+          return normalizeMasterId_(uiActiveMasterId !== null ? uiActiveMasterId : n3RenderedMasterId);
+        }
+
+        function n3_ensureRuntimeStateForDetail_(detail, allVariants) {
+          var masterId = normalizeMasterId_(detail && detail.id_master);
+          var masterState;
+
+          if (!masterId) {
+            return null;
+          }
+
+          if (!Object.prototype.hasOwnProperty.call(n3RuntimeByMasterId, masterId)) {
+            n3RuntimeByMasterId[masterId] = {
+              editableByVariantKey: {}
+            };
+          }
+
+          masterState = n3RuntimeByMasterId[masterId];
+          allVariants.forEach(function(variant, index) {
+            var runtimeKey = n3_getVariantRuntimeKey_(variant, index);
+
+            if (!Object.prototype.hasOwnProperty.call(masterState.editableByVariantKey, runtimeKey)) {
+              masterState.editableByVariantKey[runtimeKey] = n3_createEditableRuntimeState_(variant);
+            }
+          });
+
+          return masterState;
+        }
+
+        function n3_getRuntimeEditableValue_(masterId, runtimeKey, fieldName, fallbackValue) {
+          var masterState;
+
+          if (
+            !masterId ||
+            !runtimeKey ||
+            !Object.prototype.hasOwnProperty.call(N3_EDITABLE_FIELDS, fieldName)
+          ) {
+            return fallbackValue;
+          }
+
+          masterState = n3RuntimeByMasterId[masterId];
+          if (
+            !masterState ||
+            !masterState.editableByVariantKey ||
+            !masterState.editableByVariantKey[runtimeKey]
+          ) {
+            return fallbackValue;
+          }
+
+          if (!Object.prototype.hasOwnProperty.call(masterState.editableByVariantKey[runtimeKey], fieldName)) {
+            return fallbackValue;
+          }
+
+          return masterState.editableByVariantKey[runtimeKey][fieldName];
+        }
+
+        function n3_setRuntimeEditableValue_(masterId, runtimeKey, fieldName, value) {
+          var masterState;
+
+          if (
+            !masterId ||
+            !runtimeKey ||
+            !Object.prototype.hasOwnProperty.call(N3_EDITABLE_FIELDS, fieldName)
+          ) {
+            return;
+          }
+
+          if (!Object.prototype.hasOwnProperty.call(n3RuntimeByMasterId, masterId)) {
+            n3RuntimeByMasterId[masterId] = {
+              editableByVariantKey: {}
+            };
+          }
+          masterState = n3RuntimeByMasterId[masterId];
+
+          if (!Object.prototype.hasOwnProperty.call(masterState.editableByVariantKey, runtimeKey)) {
+            masterState.editableByVariantKey[runtimeKey] = n3_createEditableRuntimeState_(null);
+          }
+
+          masterState.editableByVariantKey[runtimeKey][fieldName] = value;
+        }
+
+        function n3_updateRuntimeFromInput_(inputEl, fieldName, numericValue) {
+          var runtimeMasterId = n3_getRuntimeMasterId_();
+          var variantIndex;
+          var runtimeKey;
+
+          if (
+            !inputEl ||
+            !runtimeMasterId ||
+            !Object.prototype.hasOwnProperty.call(N3_EDITABLE_FIELDS, fieldName)
+          ) {
+            return;
+          }
+
+          variantIndex = Number(inputEl.getAttribute("data-variant-index"));
+          if (isNaN(variantIndex)) {
+            return;
+          }
+
+          runtimeKey = n3VisibleVariantKeyByUiCol[String(variantIndex)];
+          if (!runtimeKey) {
+            return;
+          }
+
+          n3_setRuntimeEditableValue_(runtimeMasterId, runtimeKey, fieldName, numericValue);
+        }
+
+        function n3_syncVisibleInputsToRuntime_() {
+          if (!n3Root) {
+            return;
+          }
+
+          Array.prototype.forEach.call(n3Root.querySelectorAll(".n3-input"), function(inputEl) {
+            var fieldName = inputEl.getAttribute("data-field");
+            var numericValue;
+
+            if (!fieldName || !Object.prototype.hasOwnProperty.call(N3_EDITABLE_FIELDS, fieldName)) {
+              return;
+            }
+
+            numericValue = n3_parseNumber_(inputEl.value);
+            if (numericValue === null) {
+              return;
+            }
+
+            n3_updateRuntimeFromInput_(inputEl, fieldName, numericValue);
+          });
+        }
+
         function n3_isNonEmptyText_(value) {
           return value !== null && typeof value !== "undefined" && String(value).trim() !== "";
         }
@@ -2179,6 +2344,7 @@
 
           n3Root.setAttribute("data-n3-var-count", "0");
           n3Root.setAttribute("data-n3-var-offset", "0");
+          n3VisibleVariantKeyByUiCol = {};
           if (n3Tabs) {
             n3Tabs.classList.add("is-hidden");
           }
@@ -2275,13 +2441,15 @@
         function renderN3Readonly(detail) {
           var titleCells;
           var allVariants;
-          var variants;
+          var allVariantsWithKeys;
+          var visibleVariantsWithKeys;
           var maxColumns;
           var count;
           var offset;
           var masterId;
           var tabsConfig;
           var fields;
+          var masterRuntimeId;
 
           initN3ReadonlyBindings_();
           resetN3ReadonlyFields_();
@@ -2299,6 +2467,13 @@
           }
 
           allVariants = normalizeN3Variants_(detail.variants);
+          n3_ensureRuntimeStateForDetail_(detail, allVariants);
+          allVariantsWithKeys = allVariants.map(function(variant, index) {
+            return {
+              variant: variant,
+              runtimeKey: n3_getVariantRuntimeKey_(variant, index)
+            };
+          });
           tabsConfig = n3_getTabsConfig_(allVariants);
 
           titleCells = n3Root.querySelectorAll('[data-field="variant_title"]');
@@ -2313,22 +2488,24 @@
             }
 
             n3_renderTabs_(tabsConfig.metals);
-            variants = allVariants.filter(function(variant) {
-              return String(variant.metal_nom) === String(n3ActiveMetalNom);
+            visibleVariantsWithKeys = allVariantsWithKeys.filter(function(entry) {
+              return String(entry.variant.metal_nom) === String(n3ActiveMetalNom);
             });
           } else {
             n3ActiveMetalNom = null;
             if (n3Tabs) {
               n3Tabs.classList.add("is-hidden");
             }
-            variants = allVariants.slice();
+            visibleVariantsWithKeys = allVariantsWithKeys.slice();
           }
 
-          variants = variants.slice(0, maxColumns);
-          count = variants.length;
+          visibleVariantsWithKeys = visibleVariantsWithKeys.slice(0, maxColumns);
+          count = visibleVariantsWithKeys.length;
           offset = maxColumns - count;
+          masterRuntimeId = n3_getRuntimeMasterId_();
           n3Root.setAttribute("data-n3-var-count", String(count));
           n3Root.setAttribute("data-n3-var-offset", String(offset));
+          n3VisibleVariantKeyByUiCol = {};
           fields = [
             "temps",
             "salaire",
@@ -2352,18 +2529,43 @@
             }
 
             if (tabsConfig.tabsMode) {
-              cell.textContent = toTitleCaseDisplay_(String(variants[index - offset].taille));
+              cell.textContent = toTitleCaseDisplay_(String(visibleVariantsWithKeys[index - offset].variant.taille));
             } else {
-              cell.textContent = buildN3VariantTitle_(variants[index - offset], index - offset);
+              cell.textContent = buildN3VariantTitle_(visibleVariantsWithKeys[index - offset].variant, index - offset);
             }
           });
 
-          variants.forEach(function(variant, index) {
+          visibleVariantsWithKeys.forEach(function(entry, index) {
+            var variant = entry.variant;
+            var runtimeKey = entry.runtimeKey;
             var uiCol = offset + index;
+            var tempsForSalaire;
+
+            n3VisibleVariantKeyByUiCol[String(uiCol)] = runtimeKey;
 
             fields.forEach(function(fieldName) {
               if (fieldName === "salaire") {
-                setN3FieldValue_(fieldName, uiCol, n3_computeLaborAmount_(variant.temps));
+                tempsForSalaire = n3_getRuntimeEditableValue_(
+                  masterRuntimeId,
+                  runtimeKey,
+                  "temps",
+                  variant.temps
+                );
+                setN3FieldValue_(fieldName, uiCol, n3_computeLaborAmount_(tempsForSalaire));
+                return;
+              }
+
+              if (Object.prototype.hasOwnProperty.call(N3_EDITABLE_FIELDS, fieldName)) {
+                setN3FieldValue_(
+                  fieldName,
+                  uiCol,
+                  n3_getRuntimeEditableValue_(
+                    masterRuntimeId,
+                    runtimeKey,
+                    fieldName,
+                    variant[fieldName]
+                  )
+                );
                 return;
               }
 
@@ -2891,6 +3093,11 @@
               return;
             }
 
+            if (String(nextMetalNom) === String(n3ActiveMetalNom)) {
+              return;
+            }
+
+            n3_syncVisibleInputsToRuntime_();
             n3ActiveMetalNom = nextMetalNom;
             if (n3CurrentDetail) {
               renderN3Readonly(n3CurrentDetail);
@@ -2926,6 +3133,7 @@
             return;
           }
 
+          n3_updateRuntimeFromInput_(el, fieldName, numeric);
           el.value = n3_formatByField_(fieldName, numeric);
           if (fieldName === "temps") {
             variantIndex = Number(el.getAttribute("data-variant-index"));
@@ -2939,6 +3147,7 @@
         document.addEventListener("input", function(e) {
           var el = e.target;
           var fieldName;
+          var numeric;
           var variantIndex;
 
           if (!el || !el.classList || !el.classList.contains("n3-input")) {
@@ -2946,6 +3155,16 @@
           }
 
           fieldName = el.getAttribute("data-field");
+          if (!fieldName || !Object.prototype.hasOwnProperty.call(N3_EDITABLE_FIELDS, fieldName)) {
+            return;
+          }
+
+          numeric = n3_parseNumber_(el.value);
+          if (numeric === null) {
+            return;
+          }
+
+          n3_updateRuntimeFromInput_(el, fieldName, numeric);
           if (fieldName !== "temps") {
             return;
           }
@@ -2955,7 +3174,7 @@
             return;
           }
 
-          setN3FieldValue_("salaire", variantIndex, n3_computeLaborAmount_(el.value));
+          setN3FieldValue_("salaire", variantIndex, n3_computeLaborAmount_(numeric));
         });
 
         window.addEventListener("resize", ui_scheduleHeightSync_);
