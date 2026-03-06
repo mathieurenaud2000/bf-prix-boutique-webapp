@@ -216,19 +216,19 @@
       }
 
       #state-a[data-loading="true"] .list-wrapper {
-        display: block;
-        overflow: visible;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
 
       #state-a[data-loading="true"] #initial-load-spinner {
-        display: none;
+        display: block;
+        margin-top: 100px;
+        margin-bottom: 100px;
       }
 
       #state-a[data-loading="true"] #initial-load-ui {
-        display: flex;
-        justify-content: center;
-        margin-top: 100px;
-        margin-bottom: 100px;
+        display: none;
       }
 
       #state-a[data-loading="true"] #collections-list {
@@ -1438,13 +1438,14 @@
         var titleTool = document.getElementById("title-tool");
         var titleItemActive = document.getElementById("title-item-active");
         var n3Root = document.getElementById("n3-root");
+        var n3Saving = document.getElementById("n3-saving");
         var n3Tabs = document.getElementById("n3-tabs");
         var initialLoadUi = document.getElementById("initial-load-ui");
         var initialLoadProgress = document.getElementById("initial-load-progress");
         var initialLoadText = document.getElementById("initial-load-text");
         var defaultCollectionTitle = titleCollectionActive.textContent;
         var appRoot = document.getElementById("app-root");
-        var UI_BOOT_PRELOAD_ALL = true;
+        var UI_BOOT_PRELOAD_ALL = false;
         var UI_T_MS = 600;
         var uiCache = null;
         var activeCollectionKey = null;
@@ -1453,6 +1454,7 @@
         var n3ActiveMetalNom = null;
         var n3CurrentDetail = null;
         var uiMasterDetailInFlightById = {};
+        var uiMasterRenderRequestId = 0;
         var n3BindingsReady = false;
         var N3_EDITABLE_FIELDS = {
           temps: true,
@@ -1776,52 +1778,6 @@
 
         function startInitialBootLoad_() {
           stateA.setAttribute("data-loading", "true");
-          setBootProgressTotal_(0);
-          setBootProgressLoaded_(0);
-          setBootLoadingText_(defaultCollectionTitle);
-
-          if (UI_BOOT_PRELOAD_ALL) {
-            google.script.run
-              .withSuccessHandler(function(res) {
-                var bootData;
-
-                if (
-                  !res ||
-                  res.ok !== true ||
-                  !res.data ||
-                  !Array.isArray(res.data.collections) ||
-                  !res.data.mastersByCollection ||
-                  typeof res.data.mastersByCollection !== "object"
-                ) {
-                  setBootLoadingErrorText_();
-                  return;
-                }
-
-                bootData = {
-                  collections: res.data.collections,
-                  mastersByCollection: res.data.mastersByCollection,
-                  masterDetailsById: {}
-                };
-
-                preloadAllMasterDetailsAtBoot_(
-                  bootData,
-                  function() {
-                    handleInitialStateLoad_({
-                      ok: true,
-                      data: bootData
-                    });
-                  },
-                  function() {
-                    setBootLoadingErrorText_();
-                  }
-                );
-              })
-              .withFailureHandler(function() {
-                setBootLoadingErrorText_();
-              })
-              .ui_loadState({ activeCollectionKey: null });
-            return;
-          }
 
           google.script.run
             .withSuccessHandler(handleInitialStateLoad_)
@@ -2187,6 +2143,13 @@
           }
 
           n3Root.setAttribute("data-loading", isLoading ? "true" : "false");
+          if (n3Saving) {
+            if (isLoading) {
+              n3Saving.classList.remove("is-hidden");
+            } else {
+              n3Saving.classList.add("is-hidden");
+            }
+          }
         }
 
         function resetN3ReadonlyFields_() {
@@ -2469,12 +2432,15 @@
           var normalizedId = normalizeMasterId_(masterId);
           var key;
           var cachedDetail;
+          var requestId;
 
           if (!normalizedId) {
             return;
           }
 
           uiActiveMasterId = normalizedId;
+          requestId = uiMasterRenderRequestId + 1;
+          uiMasterRenderRequestId = requestId;
           key = String(normalizedId);
           cachedDetail =
             uiCache &&
@@ -2491,7 +2457,10 @@
           resetN3ReadonlyFields_();
 
           loadMasterDetail_(normalizedId, function(res) {
-            if (String(uiActiveMasterId) !== String(normalizedId)) {
+            if (
+              requestId !== uiMasterRenderRequestId ||
+              String(uiActiveMasterId) !== String(normalizedId)
+            ) {
               return;
             }
 
@@ -2584,8 +2553,6 @@
         }
 
         function handleInitialStateLoad_(res) {
-          var bootMasterDetailsById;
-
           if (
             !res ||
             res.ok !== true ||
@@ -2597,15 +2564,10 @@
             return;
           }
 
-          bootMasterDetailsById =
-            res.data.masterDetailsById && typeof res.data.masterDetailsById === "object"
-              ? res.data.masterDetailsById
-              : {};
-
           uiCache = {
             collections: res.data.collections,
             mastersByCollection: res.data.mastersByCollection,
-            masterDetailsById: bootMasterDetailsById
+            masterDetailsById: {}
           };
           uiMasterDetailInFlightById = {};
           activeCollectionKey = null;
