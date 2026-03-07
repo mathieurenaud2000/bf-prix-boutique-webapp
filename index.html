@@ -722,7 +722,8 @@
         color: #16A34A;
       }
 
-      .n3-btn-save[disabled] {
+      .n3-btn-save[disabled],
+      .n3-btn-reset[disabled] {
         border-color: #e6e6e6;
         color: #e6e6e6;
         cursor: default;
@@ -2237,15 +2238,9 @@
           return Number(parsed);
         }
 
-        function n3_extractRowRefFromRuntimeKey_(runtimeKey) {
-          var prefix = "rowRef:";
-          var parsed;
+        function n3_normalizeRowRef_(value) {
+          var parsed = Number(value);
 
-          if (!runtimeKey || String(runtimeKey).indexOf(prefix) !== 0) {
-            return null;
-          }
-
-          parsed = Number(String(runtimeKey).slice(prefix.length));
           if (!isFinite(parsed) || isNaN(parsed) || parsed <= 0 || Math.floor(parsed) !== parsed) {
             return null;
           }
@@ -2253,12 +2248,83 @@
           return parsed;
         }
 
+        function n3_extractRowRefFromRuntimeKey_(runtimeKey) {
+          var prefix = "rowRef:";
+
+          if (!runtimeKey || String(runtimeKey).indexOf(prefix) !== 0) {
+            return null;
+          }
+
+          return n3_normalizeRowRef_(String(runtimeKey).slice(prefix.length));
+        }
+
+        function n3_getRowRefFromRuntimeSources_(runtimeKey) {
+          var sourceVariant;
+          var idxPrefix = "idx:";
+          var idPrefix = "id:";
+          var extractedRowRef = n3_extractRowRefFromRuntimeKey_(runtimeKey);
+          var parsedIdx;
+          var idValue;
+          var i;
+
+          if (extractedRowRef !== null) {
+            return extractedRowRef;
+          }
+
+          sourceVariant = n3VariantSourceByRuntimeKey[runtimeKey];
+          if (sourceVariant) {
+            extractedRowRef = n3_normalizeRowRef_(sourceVariant.rowRef);
+            if (extractedRowRef !== null) {
+              return extractedRowRef;
+            }
+          }
+
+          if (!n3CurrentDetail || !Array.isArray(n3CurrentDetail.variants)) {
+            return null;
+          }
+
+          if (String(runtimeKey).indexOf(idxPrefix) === 0) {
+            parsedIdx = Number(String(runtimeKey).slice(idxPrefix.length));
+            if (!isNaN(parsedIdx) && parsedIdx >= 0 && parsedIdx < n3CurrentDetail.variants.length) {
+              extractedRowRef = n3_normalizeRowRef_(n3CurrentDetail.variants[parsedIdx].rowRef);
+              if (extractedRowRef !== null) {
+                return extractedRowRef;
+              }
+            }
+          }
+
+          if (String(runtimeKey).indexOf(idPrefix) === 0) {
+            idValue = String(runtimeKey).slice(idPrefix.length);
+            for (i = 0; i < n3CurrentDetail.variants.length; i += 1) {
+              if (String(n3CurrentDetail.variants[i].id) === idValue) {
+                extractedRowRef = n3_normalizeRowRef_(n3CurrentDetail.variants[i].rowRef);
+                if (extractedRowRef !== null) {
+                  return extractedRowRef;
+                }
+              }
+            }
+          }
+
+          for (i = 0; i < n3CurrentDetail.variants.length; i += 1) {
+            if (n3_getVariantRuntimeKey_(n3CurrentDetail.variants[i], i) === runtimeKey) {
+              extractedRowRef = n3_normalizeRowRef_(n3CurrentDetail.variants[i].rowRef);
+              if (extractedRowRef !== null) {
+                return extractedRowRef;
+              }
+            }
+          }
+
+          return null;
+        }
+
         function n3_buildFullMasterSavePayload_() {
           var activeMasterId = normalizeMasterId_(n3ActiveWorkMasterId || n3RenderedMasterId || uiActiveMasterId);
           var editableByVariantKey;
           var runtimeKeys;
+          var runtimeEntries;
           var expectedRowRefs = [];
           var updates = [];
+          var seenRowRefs = {};
           var invalid = false;
 
           if (
@@ -2272,22 +2338,34 @@
 
           editableByVariantKey = n3ActiveWorkState.editableByVariantKey;
           runtimeKeys = Object.keys(editableByVariantKey);
-          runtimeKeys.sort(function(left, right) {
-            var leftRef = n3_extractRowRefFromRuntimeKey_(left);
-            var rightRef = n3_extractRowRefFromRuntimeKey_(right);
+          runtimeEntries = runtimeKeys.map(function(runtimeKey) {
+            return {
+              runtimeKey: runtimeKey,
+              rowRef: n3_getRowRefFromRuntimeSources_(runtimeKey)
+            };
+          });
+          runtimeEntries.sort(function(left, right) {
+            var leftRef = left.rowRef;
+            var rightRef = right.rowRef;
 
             if (leftRef === null || rightRef === null) {
-              return String(left).localeCompare(String(right));
+              return String(left.runtimeKey).localeCompare(String(right.runtimeKey));
             }
 
             return leftRef - rightRef;
           });
-          runtimeKeys.forEach(function(runtimeKey) {
-            var rowRef = n3_extractRowRefFromRuntimeKey_(runtimeKey);
+          runtimeEntries.forEach(function(runtimeEntry) {
+            var runtimeKey = runtimeEntry.runtimeKey;
+            var rowRef = runtimeEntry.rowRef;
             var variantState = editableByVariantKey[runtimeKey];
             var updateValues = {};
 
-            if (rowRef === null || !variantState || typeof variantState !== "object") {
+            if (
+              rowRef === null ||
+              Object.prototype.hasOwnProperty.call(seenRowRefs, String(rowRef)) ||
+              !variantState ||
+              typeof variantState !== "object"
+            ) {
               invalid = true;
               return;
             }
@@ -2296,6 +2374,7 @@
               updateValues[fieldName] = n3_preparePersistableValueForSave_(variantState[fieldName]);
             });
 
+            seenRowRefs[String(rowRef)] = true;
             expectedRowRefs.push(rowRef);
             updates.push({
               rowRef: rowRef,
