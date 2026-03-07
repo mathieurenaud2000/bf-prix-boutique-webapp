@@ -180,6 +180,7 @@ function writeMasterBatch(idMaster, expectedRowRefs, updates) {
     if (columnMap && columnMap.ok === false) {
       return columnMap;
     }
+    columnMap = columnMap.data;
 
     var rows = readDataRows();
     if (rows && rows.ok === false) {
