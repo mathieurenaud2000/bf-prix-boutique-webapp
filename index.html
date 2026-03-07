@@ -2258,65 +2258,6 @@
           return n3_normalizeRowRef_(String(runtimeKey).slice(prefix.length));
         }
 
-        function n3_getRowRefFromRuntimeSources_(runtimeKey) {
-          var sourceVariant;
-          var idxPrefix = "idx:";
-          var idPrefix = "id:";
-          var extractedRowRef = n3_extractRowRefFromRuntimeKey_(runtimeKey);
-          var parsedIdx;
-          var idValue;
-          var i;
-
-          if (extractedRowRef !== null) {
-            return extractedRowRef;
-          }
-
-          sourceVariant = n3VariantSourceByRuntimeKey[runtimeKey];
-          if (sourceVariant) {
-            extractedRowRef = n3_normalizeRowRef_(sourceVariant.rowRef);
-            if (extractedRowRef !== null) {
-              return extractedRowRef;
-            }
-          }
-
-          if (!n3CurrentDetail || !Array.isArray(n3CurrentDetail.variants)) {
-            return null;
-          }
-
-          if (String(runtimeKey).indexOf(idxPrefix) === 0) {
-            parsedIdx = Number(String(runtimeKey).slice(idxPrefix.length));
-            if (!isNaN(parsedIdx) && parsedIdx >= 0 && parsedIdx < n3CurrentDetail.variants.length) {
-              extractedRowRef = n3_normalizeRowRef_(n3CurrentDetail.variants[parsedIdx].rowRef);
-              if (extractedRowRef !== null) {
-                return extractedRowRef;
-              }
-            }
-          }
-
-          if (String(runtimeKey).indexOf(idPrefix) === 0) {
-            idValue = String(runtimeKey).slice(idPrefix.length);
-            for (i = 0; i < n3CurrentDetail.variants.length; i += 1) {
-              if (String(n3CurrentDetail.variants[i].id) === idValue) {
-                extractedRowRef = n3_normalizeRowRef_(n3CurrentDetail.variants[i].rowRef);
-                if (extractedRowRef !== null) {
-                  return extractedRowRef;
-                }
-              }
-            }
-          }
-
-          for (i = 0; i < n3CurrentDetail.variants.length; i += 1) {
-            if (n3_getVariantRuntimeKey_(n3CurrentDetail.variants[i], i) === runtimeKey) {
-              extractedRowRef = n3_normalizeRowRef_(n3CurrentDetail.variants[i].rowRef);
-              if (extractedRowRef !== null) {
-                return extractedRowRef;
-              }
-            }
-          }
-
-          return null;
-        }
-
         function n3_buildFullMasterSavePayload_() {
           var activeMasterId = normalizeMasterId_(n3ActiveWorkMasterId || n3RenderedMasterId || uiActiveMasterId);
           var editableByVariantKey;
@@ -2341,7 +2282,7 @@
           runtimeEntries = runtimeKeys.map(function(runtimeKey) {
             return {
               runtimeKey: runtimeKey,
-              rowRef: n3_getRowRefFromRuntimeSources_(runtimeKey)
+              rowRef: n3_extractRowRefFromRuntimeKey_(runtimeKey)
             };
           });
           runtimeEntries.sort(function(left, right) {

@@ -28,9 +28,17 @@ function buildUiMasterDetailData_(data) {
   var sourceVariants = safeArray_(data.variants);
   var variants = sourceVariants.map(function(variant) {
     var hasRowRef = Object.prototype.hasOwnProperty.call(variant, "rowRef");
+    var normalizedRowRef = Number(variant.rowRef);
+    var rowRef = hasRowRef &&
+      isFinite(normalizedRowRef) &&
+      !isNaN(normalizedRowRef) &&
+      normalizedRowRef > 0 &&
+      Math.floor(normalizedRowRef) === normalizedRowRef
+      ? normalizedRowRef
+      : null;
 
     return {
-      rowRef: hasRowRef ? variant.rowRef : null,
+      rowRef: rowRef,
       id: variant.id,
       id_master: variant.id_master,
       metal_nom: variant.metal_nom,

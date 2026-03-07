@@ -29,13 +29,32 @@ function api_loadMaster(id_master) {
   }
 
   var rows = readDataRows();
+  var rowsWithRefs;
+  var rowsForMasterWithRefs;
+  var rowsForMaster;
   if (rows && rows.ok === false) {
     return rows;
   }
   rows = rows.data.rows;
+  rowsWithRefs = rows.map(function(row, index) {
+    return {
+      rowRef: DATA_START_ROW + index,
+      row: row
+    };
+  });
 
-  var rowsForMaster = rows.filter(function(row) {
-    return row.id_master === convertedIdMaster;
+  rowsForMasterWithRefs = rowsWithRefs.filter(function(entry) {
+    return entry.row.id_master === convertedIdMaster;
+  });
+  rowsForMaster = rowsForMasterWithRefs.map(function(entry) {
+    var variant = {};
+
+    Object.keys(entry.row).forEach(function(header) {
+      variant[header] = entry.row[header];
+    });
+    variant.rowRef = entry.rowRef;
+
+    return variant;
   });
 
   if (rowsForMaster.length === 0) {
@@ -48,7 +67,9 @@ function api_loadMaster(id_master) {
     );
   }
 
-  var structureDE = validateStructureDE(rowsForMaster);
+  var structureDE = validateStructureDE(rowsForMasterWithRefs.map(function(entry) {
+    return entry.row;
+  }));
   if (structureDE && structureDE.ok === false) {
     return structureDE;
   }
