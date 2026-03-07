@@ -724,8 +724,8 @@
 
       .n3-btn-save[disabled],
       .n3-btn-reset[disabled] {
-        border-color: #e6e6e6;
-        color: #e6e6e6;
+        border-color: #b2b2b2;
+        color: #b2b2b2;
         cursor: default;
       }
 
@@ -737,9 +737,19 @@
       }
 
       .n3-btn-save.is-loading {
-        border-color: #000000;
-        color: #000000;
+        background: #16A34A;
+        border-color: #16A34A;
+        color: #FFFFFF;
+        font-size: 20px;
+        font-weight: 600;
+        line-height: 20px;
         cursor: default;
+      }
+
+      .n3-btn-save:not([disabled]) {
+        background: #16A34A;
+        border-color: #16A34A;
+        color: #FFFFFF;
       }
 
       .n3-actions-wrap {
@@ -2179,14 +2189,19 @@
 
         function n3_setButtonLoadingLabel_(button, type) {
           var dots = 0;
+          var bulletFrames = ["●", "● ●", "● ● ●"];
 
           if (!button) {
             return;
           }
 
-          button.textContent = "...";
+          button.textContent = type === "save" ? bulletFrames[2] : "...";
           n3ButtonLoaderTimers[type] = window.setInterval(function() {
             dots = (dots + 1) % 3;
+            if (type === "save") {
+              button.textContent = bulletFrames[dots];
+              return;
+            }
             button.textContent = ".".repeat(dots + 1);
           }, 220);
         }
