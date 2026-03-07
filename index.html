@@ -1416,7 +1416,7 @@
               </div>
               <div class="n3-actions-wrap">
                 <div class="n3-actions">
-                  <button class="n3-btn" type="button">Réinitialiser</button>
+                  <button class="n3-btn n3-btn-reset" type="button">Réinitialiser</button>
                   <button class="n3-btn n3-btn-save" type="button" disabled>Enregistrer</button>
                   <button class="n3-btn-saved is-hidden" type="button"><span class="material-symbols-outlined">check</span><span>Enregistré</span></button>
                 </div>
@@ -1445,6 +1445,7 @@
         var n3Saving = document.getElementById("n3-saving");
         var n3Tabs = document.getElementById("n3-tabs");
         var n3SaveButton = document.querySelector(".n3-btn-save");
+        var n3ResetButton = document.querySelector(".n3-btn-reset");
         var initialLoadUi = document.getElementById("initial-load-ui");
         var initialLoadProgress = document.getElementById("initial-load-progress");
         var initialLoadText = document.getElementById("initial-load-text");
@@ -1467,6 +1468,12 @@
         var uiMasterDetailInFlightById = {};
         var uiMasterRenderRequestId = 0;
         var n3BindingsReady = false;
+        var n3SaveRequestInFlight = false;
+        var n3ResetRequestInFlight = false;
+        var n3ButtonLoaderTimers = {
+          save: null,
+          reset: null
+        };
         var N3_PERSISTABLE_FIELDS = [
           "temps",
           "metal_prix",
@@ -2156,15 +2163,301 @@
           };
         }
 
-        function n3UpdateSaveButtonState_() {
-          if (!n3SaveButton) {
+        function n3_setButtonLoadingLabel_(button, type) {
+          var dots = 0;
+
+          if (!button) {
             return;
           }
 
-          n3SaveButton.disabled = !(
-            n3ActiveMasterDiff &&
-            n3ActiveMasterDiff.isDirty === true
-          );
+          button.textContent = "...";
+          n3ButtonLoaderTimers[type] = window.setInterval(function() {
+            dots = (dots + 1) % 3;
+            button.textContent = ".".repeat(dots + 1);
+          }, 220);
+        }
+
+        function n3_clearButtonLoadingLabel_(type) {
+          if (n3ButtonLoaderTimers[type]) {
+            window.clearInterval(n3ButtonLoaderTimers[type]);
+            n3ButtonLoaderTimers[type] = null;
+          }
+        }
+
+        function n3_setSaveLoading_(isLoading) {
+          if (isLoading === true) {
+            if (n3SaveRequestInFlight) {
+              return;
+            }
+
+            n3SaveRequestInFlight = true;
+            n3_setButtonLoadingLabel_(n3SaveButton, "save");
+            n3UpdateSaveButtonState_();
+            return;
+          }
+
+          n3SaveRequestInFlight = false;
+          n3_clearButtonLoadingLabel_("save");
+          n3UpdateSaveButtonState_();
+        }
+
+        function n3_setResetLoading_(isLoading) {
+          if (isLoading === true) {
+            if (n3ResetRequestInFlight) {
+              return;
+            }
+
+            n3ResetRequestInFlight = true;
+            n3_setButtonLoadingLabel_(n3ResetButton, "reset");
+            n3UpdateSaveButtonState_();
+            return;
+          }
+
+          n3ResetRequestInFlight = false;
+          n3_clearButtonLoadingLabel_("reset");
+          n3UpdateSaveButtonState_();
+        }
+
+        function n3_preparePersistableValueForSave_(value) {
+          var parsed;
+
+          if (value === null || typeof value === "undefined") {
+            return "";
+          }
+
+          if (typeof value === "string" && value.trim() === "") {
+            return "";
+          }
+
+          parsed = n3_parseNumber_(value);
+          if (parsed === null) {
+            return "";
+          }
+
+          return Number(parsed);
+        }
+
+        function n3_extractRowRefFromRuntimeKey_(runtimeKey) {
+          var prefix = "rowRef:";
+          var parsed;
+
+          if (!runtimeKey || String(runtimeKey).indexOf(prefix) !== 0) {
+            return null;
+          }
+
+          parsed = Number(String(runtimeKey).slice(prefix.length));
+          if (!isFinite(parsed) || isNaN(parsed) || parsed <= 0 || Math.floor(parsed) !== parsed) {
+            return null;
+          }
+
+          return parsed;
+        }
+
+        function n3_buildFullMasterSavePayload_() {
+          var activeMasterId = normalizeMasterId_(n3ActiveWorkMasterId || n3RenderedMasterId || uiActiveMasterId);
+          var editableByVariantKey;
+          var runtimeKeys;
+          var expectedRowRefs = [];
+          var updates = [];
+          var invalid = false;
+
+          if (
+            !activeMasterId ||
+            !n3ActiveWorkState ||
+            !n3ActiveWorkState.editableByVariantKey ||
+            typeof n3ActiveWorkState.editableByVariantKey !== "object"
+          ) {
+            return null;
+          }
+
+          editableByVariantKey = n3ActiveWorkState.editableByVariantKey;
+          runtimeKeys = Object.keys(editableByVariantKey);
+          runtimeKeys.sort(function(left, right) {
+            var leftRef = n3_extractRowRefFromRuntimeKey_(left);
+            var rightRef = n3_extractRowRefFromRuntimeKey_(right);
+
+            if (leftRef === null || rightRef === null) {
+              return String(left).localeCompare(String(right));
+            }
+
+            return leftRef - rightRef;
+          });
+          runtimeKeys.forEach(function(runtimeKey) {
+            var rowRef = n3_extractRowRefFromRuntimeKey_(runtimeKey);
+            var variantState = editableByVariantKey[runtimeKey];
+            var updateValues = {};
+
+            if (rowRef === null || !variantState || typeof variantState !== "object") {
+              invalid = true;
+              return;
+            }
+
+            N3_PERSISTABLE_FIELDS.forEach(function(fieldName) {
+              updateValues[fieldName] = n3_preparePersistableValueForSave_(variantState[fieldName]);
+            });
+
+            expectedRowRefs.push(rowRef);
+            updates.push({
+              rowRef: rowRef,
+              values: updateValues
+            });
+          });
+
+          if (invalid || expectedRowRefs.length === 0 || expectedRowRefs.length !== updates.length) {
+            return null;
+          }
+
+          return {
+            id_master: Number(activeMasterId),
+            expectedRowRefs: expectedRowRefs,
+            updates: updates
+          };
+        }
+
+        function n3_syncCurrentDetailWithWorkState_(masterId) {
+          if (
+            !n3CurrentDetail ||
+            !Array.isArray(n3CurrentDetail.variants) ||
+            !n3ActiveWorkState ||
+            !n3ActiveWorkState.editableByVariantKey ||
+            typeof n3ActiveWorkState.editableByVariantKey !== "object" ||
+            normalizeMasterId_(n3CurrentDetail.id_master) !== normalizeMasterId_(masterId)
+          ) {
+            return;
+          }
+
+          n3CurrentDetail.variants.forEach(function(variant, index) {
+            var runtimeKey = n3_getVariantRuntimeKey_(variant, index);
+
+            if (
+              !Object.prototype.hasOwnProperty.call(n3ActiveWorkState.editableByVariantKey, runtimeKey)
+            ) {
+              return;
+            }
+
+            N3_PERSISTABLE_FIELDS.forEach(function(fieldName) {
+              variant[fieldName] = n3ActiveWorkState.editableByVariantKey[runtimeKey][fieldName];
+            });
+          });
+        }
+
+        function n3_commitActiveWorkToReference_(options) {
+          var activeMasterId = normalizeMasterId_(n3ActiveWorkMasterId);
+
+          if (
+            !activeMasterId ||
+            !n3ActiveWorkState ||
+            !n3ActiveWorkState.editableByVariantKey ||
+            typeof n3ActiveWorkState.editableByVariantKey !== "object"
+          ) {
+            n3RefreshDirtyState_();
+            return false;
+          }
+
+          n3ReferenceByMasterId[activeMasterId] = {
+            editableByVariantKey: n3_cloneEditableStateMap_(n3ActiveWorkState.editableByVariantKey)
+          };
+          n3_syncCurrentDetailWithWorkState_(activeMasterId);
+
+          if (options && options.realignWork === true) {
+            n3_resetActiveWorkState_(activeMasterId);
+          }
+
+          if (uiCache && uiCache.masterDetailsById) {
+            delete uiCache.masterDetailsById[String(activeMasterId)];
+          }
+
+          n3RefreshDirtyState_();
+          return true;
+        }
+
+        function n3_handleSaveClick_() {
+          var activeMasterId = normalizeMasterId_(n3ActiveWorkMasterId || n3RenderedMasterId || uiActiveMasterId);
+          var payload;
+
+          if (
+            n3SaveRequestInFlight ||
+            n3ResetRequestInFlight ||
+            !activeMasterId ||
+            !n3ActiveMasterDiff ||
+            n3ActiveMasterDiff.isDirty !== true
+          ) {
+            return;
+          }
+
+          payload = n3_buildFullMasterSavePayload_();
+          if (!payload) {
+            n3UpdateSaveButtonState_();
+            return;
+          }
+
+          n3_setSaveLoading_(true);
+          google.script.run
+            .withSuccessHandler(function(res) {
+              n3_setSaveLoading_(false);
+              if (!res || res.ok !== true) {
+                n3RefreshDirtyState_();
+                return;
+              }
+
+              n3_commitActiveWorkToReference_({ realignWork: true });
+            })
+            .withFailureHandler(function() {
+              n3_setSaveLoading_(false);
+              n3RefreshDirtyState_();
+            })
+            .api_saveMaster(payload);
+        }
+
+        function n3_handleResetClick_() {
+          var activeMasterId = normalizeMasterId_(n3ActiveWorkMasterId || n3RenderedMasterId || uiActiveMasterId);
+
+          if (
+            n3SaveRequestInFlight ||
+            n3ResetRequestInFlight ||
+            !activeMasterId ||
+            !n3ActiveMasterDiff ||
+            n3ActiveMasterDiff.isDirty !== true ||
+            !n3ReferenceByMasterId[activeMasterId]
+          ) {
+            return;
+          }
+
+          n3_setResetLoading_(true);
+          requestAnimationFrame(function() {
+            if (!n3ReferenceByMasterId[activeMasterId]) {
+              n3_setResetLoading_(false);
+              n3RefreshDirtyState_();
+              return;
+            }
+
+            n3_resetActiveWorkState_(activeMasterId);
+            if (n3CurrentDetail) {
+              renderN3Readonly(n3CurrentDetail);
+            } else {
+              n3RefreshDirtyState_();
+            }
+            n3_setResetLoading_(false);
+          });
+        }
+
+        function n3UpdateSaveButtonState_() {
+          var isDirty = !!(n3ActiveMasterDiff && n3ActiveMasterDiff.isDirty === true);
+          var isAnyLoading = n3SaveRequestInFlight || n3ResetRequestInFlight;
+
+          if (n3SaveButton) {
+            if (!n3SaveRequestInFlight) {
+              n3SaveButton.textContent = isDirty ? "Enregistrer" : "Enregistré";
+            }
+            n3SaveButton.disabled = isAnyLoading || !isDirty;
+          }
+
+          if (n3ResetButton) {
+            if (!n3ResetRequestInFlight) {
+              n3ResetButton.textContent = isDirty ? "Réinitialiser" : "Réinitialisé";
+            }
+            n3ResetButton.disabled = isAnyLoading || !isDirty;
+          }
         }
 
         function n3RefreshDirtyState_() {
@@ -3183,7 +3476,6 @@
 
         function ui_closeC_toB(options) {
           var token;
-          var activeMasterId;
 
           if (UI_IS_TRANSITIONING) {
             return options;
@@ -3195,18 +3487,7 @@
 
           token = ui_beginTransition();
           if (options && options.saved === true) {
-            activeMasterId = normalizeMasterId_(n3ActiveWorkMasterId);
-            if (
-              activeMasterId &&
-              n3ActiveWorkState &&
-              n3ActiveWorkState.editableByVariantKey &&
-              typeof n3ActiveWorkState.editableByVariantKey === "object"
-            ) {
-              n3ReferenceByMasterId[activeMasterId] = {
-                editableByVariantKey: n3_cloneEditableStateMap_(n3ActiveWorkState.editableByVariantKey)
-              };
-            }
-            n3RefreshDirtyState_();
+            n3_commitActiveWorkToReference_({ realignWork: false });
           }
           n3ActiveWorkMasterId = null;
           n3ActiveWorkState = null;
@@ -3345,6 +3626,18 @@
           ui_closeC_toB({ saved: false });
         });
 
+        if (n3SaveButton) {
+          n3SaveButton.addEventListener("click", function() {
+            n3_handleSaveClick_();
+          });
+        }
+
+        if (n3ResetButton) {
+          n3ResetButton.addEventListener("click", function() {
+            n3_handleResetClick_();
+          });
+        }
+
         if (n3Tabs) {
           n3Tabs.addEventListener("click", function(event) {
             var target = event.target;
@@ -3453,6 +3746,7 @@
         appRoot.style.setProperty("--t", UI_T_MS + "ms");
         initN3ReadonlyBindings_();
         resetN3ReadonlyFields_();
+        n3UpdateSaveButtonState_();
         stateA.style.display = "block";
         stateB.style.display = "none";
         ui_clearBStageClasses_();
