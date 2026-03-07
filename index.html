@@ -2580,8 +2580,9 @@
           var m_cou = cout_base + m_pur + m_com + m_fix;
           var m_pro = m_pri - m_cou;
           var m_pou = m_pri !== 0 ? m_pro / m_pri : null;
-          var l_pri = bf_pri / 2;
-          var l_cou = m_cou + (l_pri * 0.04) + (l_pri * 0.02);
+          var l_pri = (bf_pri / 2) * 0.025;
+          var l_com = (bf_pri / 2) * 0.05;
+          var l_cou = cout_base + m_pur + m_fix + l_pri + l_com;
           var l_pro = l_pri - l_cou;
           var l_pou = l_pri !== 0 ? l_pro / l_pri : null;
           var ma_pri = bf_pri * 0.435;
