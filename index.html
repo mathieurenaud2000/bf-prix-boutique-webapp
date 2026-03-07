@@ -1444,6 +1444,7 @@
         var n3Root = document.getElementById("n3-root");
         var n3Saving = document.getElementById("n3-saving");
         var n3Tabs = document.getElementById("n3-tabs");
+        var n3SaveButton = document.querySelector(".n3-btn-save");
         var initialLoadUi = document.getElementById("initial-load-ui");
         var initialLoadProgress = document.getElementById("initial-load-progress");
         var initialLoadText = document.getElementById("initial-load-text");
@@ -1462,17 +1463,22 @@
         var n3ActiveWorkMasterId = null;
         var n3VisibleVariantKeyByUiCol = {};
         var n3VariantSourceByRuntimeKey = {};
+        var n3ActiveMasterDiff = null;
         var uiMasterDetailInFlightById = {};
         var uiMasterRenderRequestId = 0;
         var n3BindingsReady = false;
-        var N3_EDITABLE_FIELDS = {
-          temps: true,
-          metal_prix: true,
-          matiere: true,
-          chaine: true,
-          boite: true,
-          bf_pri: true
-        };
+        var N3_PERSISTABLE_FIELDS = [
+          "temps",
+          "metal_prix",
+          "matiere",
+          "chaine",
+          "boite",
+          "bf_pri"
+        ];
+        var N3_EDITABLE_FIELDS = N3_PERSISTABLE_FIELDS.reduce(function(map, fieldName) {
+          map[fieldName] = true;
+          return map;
+        }, {});
         var N3_MONEY_FIELDS = {
           salaire: true,
           metal_prix: true,
@@ -2005,6 +2011,191 @@
           return Number(temps) * N3_LABOR_HOURLY_RATE;
         }
 
+        function n3NormalizeComparableValue_(value) {
+          var normalized = value;
+
+          if (value === null || typeof value === "undefined") {
+            return null;
+          }
+
+          if (typeof value === "string") {
+            normalized = value.trim();
+            if (normalized === "") {
+              return null;
+            }
+          }
+
+          return Number(normalized);
+        }
+
+        function n3BuildWorkVariantsByRowRef_(workState) {
+          var variantsByRowRef = {};
+          var editableByVariantKey;
+
+          if (!workState || !workState.editableByVariantKey || typeof workState.editableByVariantKey !== "object") {
+            return variantsByRowRef;
+          }
+
+          editableByVariantKey = workState.editableByVariantKey;
+          Object.keys(editableByVariantKey).forEach(function(runtimeKey) {
+            var prefix = "rowRef:";
+            var rowRefValue;
+
+            if (runtimeKey.indexOf(prefix) !== 0) {
+              return;
+            }
+
+            rowRefValue = runtimeKey.slice(prefix.length).trim();
+            if (rowRefValue === "") {
+              return;
+            }
+
+            variantsByRowRef[rowRefValue] = editableByVariantKey[runtimeKey];
+          });
+
+          return variantsByRowRef;
+        }
+
+        function n3BuildReferenceVariantsByRowRef_(referenceState) {
+          var variantsByRowRef = {};
+          var editableByVariantKey;
+
+          if (
+            !referenceState ||
+            !referenceState.editableByVariantKey ||
+            typeof referenceState.editableByVariantKey !== "object"
+          ) {
+            return variantsByRowRef;
+          }
+
+          editableByVariantKey = referenceState.editableByVariantKey;
+          Object.keys(editableByVariantKey).forEach(function(runtimeKey) {
+            var prefix = "rowRef:";
+            var rowRefValue;
+
+            if (runtimeKey.indexOf(prefix) !== 0) {
+              return;
+            }
+
+            rowRefValue = runtimeKey.slice(prefix.length).trim();
+            if (rowRefValue === "") {
+              return;
+            }
+
+            variantsByRowRef[rowRefValue] = editableByVariantKey[runtimeKey];
+          });
+
+          return variantsByRowRef;
+        }
+
+        function n3ComputeVariantDiff_(referenceVariant, workVariant) {
+          var changedFields = {};
+          var isDirty = false;
+
+          N3_PERSISTABLE_FIELDS.forEach(function(fieldName) {
+            var referenceValue = n3NormalizeComparableValue_(
+              referenceVariant ? referenceVariant[fieldName] : null
+            );
+            var workValue = n3NormalizeComparableValue_(
+              workVariant ? workVariant[fieldName] : null
+            );
+            var changed = referenceValue !== workValue;
+
+            changedFields[fieldName] = changed;
+            if (changed) {
+              isDirty = true;
+            }
+          });
+
+          return {
+            isDirty: isDirty,
+            changedFields: changedFields
+          };
+        }
+
+        function n3ComputeMasterDiff_(idMaster) {
+          var normalizedId = normalizeMasterId_(idMaster);
+          var referenceState;
+          var workState;
+          var referenceByRowRef;
+          var workByRowRef;
+          var variantsByRowRef = {};
+          var dirtyVariantCount = 0;
+
+          if (!normalizedId) {
+            return {
+              id_master: null,
+              isDirty: false,
+              dirtyVariantCount: 0,
+              variantsByRowRef: {}
+            };
+          }
+
+          referenceState = n3ReferenceByMasterId[normalizedId];
+          workState = n3ActiveWorkState;
+          if (!referenceState || !workState || String(n3ActiveWorkMasterId) !== String(normalizedId)) {
+            return {
+              id_master: normalizedId,
+              isDirty: false,
+              dirtyVariantCount: 0,
+              variantsByRowRef: {}
+            };
+          }
+
+          referenceByRowRef = n3BuildReferenceVariantsByRowRef_(referenceState);
+          workByRowRef = n3BuildWorkVariantsByRowRef_(workState);
+          Object.keys(referenceByRowRef).forEach(function(rowRefKey) {
+            var variantDiff;
+            var normalizedRowRef = Number(rowRefKey);
+
+            if (!Object.prototype.hasOwnProperty.call(workByRowRef, rowRefKey)) {
+              return;
+            }
+
+            variantDiff = n3ComputeVariantDiff_(referenceByRowRef[rowRefKey], workByRowRef[rowRefKey]);
+            if (variantDiff.isDirty) {
+              dirtyVariantCount += 1;
+            }
+
+            variantsByRowRef[rowRefKey] = {
+              rowRef: isFinite(normalizedRowRef) && !isNaN(normalizedRowRef) ? normalizedRowRef : rowRefKey,
+              isDirty: variantDiff.isDirty,
+              changedFields: variantDiff.changedFields
+            };
+          });
+
+          return {
+            id_master: normalizedId,
+            isDirty: dirtyVariantCount > 0,
+            dirtyVariantCount: dirtyVariantCount,
+            variantsByRowRef: variantsByRowRef
+          };
+        }
+
+        function n3UpdateSaveButtonState_() {
+          if (!n3SaveButton) {
+            return;
+          }
+
+          n3SaveButton.disabled = !(
+            n3ActiveMasterDiff &&
+            n3ActiveMasterDiff.isDirty === true
+          );
+        }
+
+        function n3RefreshDirtyState_() {
+          var activeMasterId = normalizeMasterId_(n3ActiveWorkMasterId || n3RenderedMasterId || uiActiveMasterId);
+
+          if (!activeMasterId || String(n3ActiveWorkMasterId) !== String(activeMasterId)) {
+            n3ActiveMasterDiff = null;
+            n3UpdateSaveButtonState_();
+            return;
+          }
+
+          n3ActiveMasterDiff = n3ComputeMasterDiff_(activeMasterId);
+          n3UpdateSaveButtonState_();
+        }
+
         function n3_toNumberOrZero_(rawValue) {
           var parsed = n3_parseNumber_(rawValue);
           return parsed === null ? 0 : Number(parsed);
@@ -2012,15 +2203,13 @@
 
         function n3_getEditableValuesForRuntime_(runtimeKey, fallbackVariant) {
           var variant = fallbackVariant || {};
+          var editableValues = n3_createEditableRuntimeState_(null);
 
-          return {
-            temps: n3_getWorkEditableValue_(runtimeKey, "temps", variant.temps),
-            metal_prix: n3_getWorkEditableValue_(runtimeKey, "metal_prix", variant.metal_prix),
-            matiere: n3_getWorkEditableValue_(runtimeKey, "matiere", variant.matiere),
-            chaine: n3_getWorkEditableValue_(runtimeKey, "chaine", variant.chaine),
-            boite: n3_getWorkEditableValue_(runtimeKey, "boite", variant.boite),
-            bf_pri: n3_getWorkEditableValue_(runtimeKey, "bf_pri", variant.bf_pri)
-          };
+          N3_PERSISTABLE_FIELDS.forEach(function(fieldName) {
+            editableValues[fieldName] = n3_getWorkEditableValue_(runtimeKey, fieldName, variant[fieldName]);
+          });
+
+          return editableValues;
         }
 
         function n3_computeDerivedValues_(editableValues) {
@@ -2122,28 +2311,23 @@
         }
 
         function n3_createEditableRuntimeState_(variant) {
-          return {
-            temps: variant ? variant.temps : null,
-            metal_prix: variant ? variant.metal_prix : null,
-            matiere: variant ? variant.matiere : null,
-            chaine: variant ? variant.chaine : null,
-            boite: variant ? variant.boite : null,
-            bf_pri: variant ? variant.bf_pri : null
-          };
+          var state = {};
+
+          N3_PERSISTABLE_FIELDS.forEach(function(fieldName) {
+            state[fieldName] = variant ? variant[fieldName] : null;
+          });
+
+          return state;
         }
 
         function n3_cloneEditableStateMap_(sourceMap) {
           var clone = {};
 
           Object.keys(sourceMap || {}).forEach(function(runtimeKey) {
-            clone[runtimeKey] = {
-              temps: sourceMap[runtimeKey].temps,
-              metal_prix: sourceMap[runtimeKey].metal_prix,
-              matiere: sourceMap[runtimeKey].matiere,
-              chaine: sourceMap[runtimeKey].chaine,
-              boite: sourceMap[runtimeKey].boite,
-              bf_pri: sourceMap[runtimeKey].bf_pri
-            };
+            clone[runtimeKey] = n3_createEditableRuntimeState_(null);
+            N3_PERSISTABLE_FIELDS.forEach(function(fieldName) {
+              clone[runtimeKey][fieldName] = sourceMap[runtimeKey][fieldName];
+            });
           });
 
           return clone;
@@ -2649,6 +2833,7 @@
           });
 
           setN3LoadingState_(false);
+          n3RefreshDirtyState_();
         }
 
         function flushMasterDetailQueue_(idMaster, result) {
@@ -2739,6 +2924,7 @@
           if (n3ActiveWorkMasterId !== null && String(n3ActiveWorkMasterId) !== String(normalizedId)) {
             n3ActiveWorkMasterId = null;
             n3ActiveWorkState = null;
+            n3RefreshDirtyState_();
           }
           requestId = uiMasterRenderRequestId + 1;
           uiMasterRenderRequestId = requestId;
@@ -3013,6 +3199,7 @@
 
         function ui_closeC_toB(options) {
           var token;
+          var activeMasterId;
 
           if (UI_IS_TRANSITIONING) {
             return options;
@@ -3023,10 +3210,26 @@
           }
 
           token = ui_beginTransition();
+          if (options && options.saved === true) {
+            activeMasterId = normalizeMasterId_(n3ActiveWorkMasterId);
+            if (
+              activeMasterId &&
+              n3ActiveWorkState &&
+              n3ActiveWorkState.editableByVariantKey &&
+              typeof n3ActiveWorkState.editableByVariantKey === "object"
+            ) {
+              n3ReferenceByMasterId[activeMasterId] = {
+                editableByVariantKey: n3_cloneEditableStateMap_(n3ActiveWorkState.editableByVariantKey)
+              };
+            }
+            n3RefreshDirtyState_();
+          }
           n3ActiveWorkMasterId = null;
           n3ActiveWorkState = null;
+          n3ActiveMasterDiff = null;
           n3RenderedMasterId = null;
           n3CurrentDetail = null;
+          n3RefreshDirtyState_();
           if (!options || options.saved !== true) {
             setActiveRow(mastersList.querySelectorAll(".collection-row"), null);
           }
@@ -3222,6 +3425,7 @@
           if (!isNaN(variantIndex)) {
             n3_renderCalculatedFieldsForUiColumn_(variantIndex);
           }
+          n3RefreshDirtyState_();
           el.blur();
         });
 
@@ -3252,6 +3456,7 @@
           }
 
           n3_renderCalculatedFieldsForUiColumn_(variantIndex);
+          n3RefreshDirtyState_();
         });
 
         window.addEventListener("resize", ui_scheduleHeightSync_);
