@@ -2384,7 +2384,12 @@
           }
 
           if (uiCache && uiCache.masterDetailsById) {
-            delete uiCache.masterDetailsById[String(activeMasterId)];
+            if (
+              n3CurrentDetail &&
+              normalizeMasterId_(n3CurrentDetail.id_master) === normalizeMasterId_(activeMasterId)
+            ) {
+              uiCache.masterDetailsById[String(activeMasterId)] = n3CurrentDetail;
+            }
           }
 
           n3RefreshDirtyState_();
