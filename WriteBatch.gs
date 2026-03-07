@@ -385,14 +385,17 @@ function writeMasterBatch(idMaster, expectedRowRefs, updates) {
       }
     };
   } catch (error) {
-    return createError(
-      "ERR_WRITE_FAILED",
-      "Failed to write master updates.",
-      {
-        id_master: idMaster,
-        message: error && error.message ? error.message : String(error)
+    return {
+      ok: false,
+      error: {
+        code: "ERR_WRITE_FAILED",
+        message: error && error.message ? String(error.message) : String(error),
+        stack: error && error.stack ? String(error.stack) : null,
+        rowRefs: Array.isArray(expectedRowRefs) ? expectedRowRefs.slice() : [],
+        columns: Array.isArray(writableColumns) ? writableColumns.slice() : [],
+        id_master: idMaster
       }
-    );
+    };
   } finally {
     lock.releaseLock();
   }
