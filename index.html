@@ -1471,6 +1471,7 @@
         var n3BindingsReady = false;
         var n3SaveRequestInFlight = false;
         var n3ResetRequestInFlight = false;
+        var N3_SAVE_DEBUG_POPUP = true;
         var n3ButtonLoaderTimers = {
           save: null,
           reset: null
@@ -2391,6 +2392,102 @@
           return true;
         }
 
+        function n3_formatSaveDebugValue_(value) {
+          if (value === null) {
+            return "null";
+          }
+
+          if (typeof value === "undefined") {
+            return "undefined";
+          }
+
+          if (typeof value === "string") {
+            return '"' + value + '"';
+          }
+
+          return String(value);
+        }
+
+        function n3_buildSaveDebugValuesLine_(values) {
+          var parts = [];
+
+          N3_PERSISTABLE_FIELDS.forEach(function(fieldName) {
+            parts.push(fieldName + "=" + n3_formatSaveDebugValue_(values ? values[fieldName] : undefined));
+          });
+
+          return parts.join(", ");
+        }
+
+        function n3_buildSaveRequestDebugMessage_(payload) {
+          var lines = [];
+
+          if (!payload) {
+            return "Payload: null";
+          }
+
+          lines.push("id_master: " + n3_formatSaveDebugValue_(payload.id_master));
+          lines.push("expectedRowRefs: [" + (payload.expectedRowRefs || []).join(", ") + "]");
+          lines.push("updates:");
+          (payload.updates || []).forEach(function(update, index) {
+            lines.push(
+              "  " +
+              String(index + 1) +
+              ") rowRef=" +
+              n3_formatSaveDebugValue_(update ? update.rowRef : undefined) +
+              " | " +
+              n3_buildSaveDebugValuesLine_(update ? update.values : null)
+            );
+          });
+
+          return lines.join("\n");
+        }
+
+        function n3_buildSaveResponseDebugMessage_(res) {
+          var lines = [];
+          var variantsReloaded;
+
+          lines.push("ok: " + n3_formatSaveDebugValue_(res && res.ok));
+          if (res && res.error) {
+            lines.push("error.code: " + n3_formatSaveDebugValue_(res.error.code));
+            lines.push("error.message: " + n3_formatSaveDebugValue_(res.error.message));
+          }
+
+          if (res && res.data) {
+            lines.push("data.id_master: " + n3_formatSaveDebugValue_(res.data.id_master));
+            variantsReloaded = Array.isArray(res.data.variantsReloaded) ? res.data.variantsReloaded : null;
+            if (!variantsReloaded) {
+              lines.push("data.variantsReloaded: not available");
+            } else {
+              lines.push("data.variantsReloaded count: " + String(variantsReloaded.length));
+              variantsReloaded.forEach(function(variant, index) {
+                var rowRef = variant && Object.prototype.hasOwnProperty.call(variant, "rowRef")
+                  ? n3_formatSaveDebugValue_(variant.rowRef)
+                  : "unavailable in backend response";
+                lines.push(
+                  "  " +
+                  String(index + 1) +
+                  ") rowRef=" +
+                  rowRef +
+                  " | " +
+                  n3_buildSaveDebugValuesLine_(variant)
+                );
+              });
+            }
+          } else {
+            lines.push("data: not available");
+          }
+
+          return lines.join("\n");
+        }
+
+        function n3_showSaveDebugPopup_(title, message) {
+          if (!N3_SAVE_DEBUG_POPUP) {
+            return;
+          }
+
+          window.alert(title + "\n\n" + message);
+        }
+
         function n3_handleSaveClick_() {
           var activeMasterId = normalizeMasterId_(n3ActiveWorkMasterId || n3RenderedMasterId || uiActiveMasterId);
           var payload;
@@ -2411,10 +2508,18 @@
             return;
           }
 
+          n3_showSaveDebugPopup_(
+            "N3 SAVE DEBUG — Request",
+            n3_buildSaveRequestDebugMessage_(payload)
+          );
           n3_setSaveLoading_(true);
           google.script.run
             .withSuccessHandler(function(res) {
               n3_setSaveLoading_(false);
+              n3_showSaveDebugPopup_(
+                "N3 SAVE DEBUG — Response",
+                n3_buildSaveResponseDebugMessage_(res)
+              );
               if (!res || res.ok !== true) {
                 n3RefreshDirtyState_();
                 return;
@@ -2422,8 +2527,12 @@
 
               n3_commitActiveWorkToReference_({ realignWork: true });
             })
-            .withFailureHandler(function() {
+            .withFailureHandler(function(error) {
               n3_setSaveLoading_(false);
+              n3_showSaveDebugPopup_(
+                "N3 SAVE DEBUG — Failure",
+                "Backend failure. Details: " + n3_formatSaveDebugValue_(error && error.message ? error.message : error)
+              );
               n3RefreshDirtyState_();
             })
             .api_saveMaster(payload);
