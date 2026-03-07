@@ -1471,12 +1471,6 @@
         var n3BindingsReady = false;
         var n3SaveRequestInFlight = false;
         var n3ResetRequestInFlight = false;
-        var N3_SAVE_DEBUG_POPUP = true;
-        var n3SaveDebugHeaderToCol = null;
-        var n3SaveDebugHeaderMapRequested = false;
-        var n3SaveDebugModalEl = null;
-        var n3SaveDebugModalTitleEl = null;
-        var n3SaveDebugModalTextEl = null;
         var n3ButtonLoaderTimers = {
           save: null,
           reset: null
@@ -2397,287 +2391,6 @@
           return true;
         }
 
-        function n3_formatSaveDebugValue_(value) {
-          if (value === null) {
-            return "null";
-          }
-
-          if (typeof value === "undefined") {
-            return "undefined";
-          }
-
-          if (typeof value === "string") {
-            return '"' + value + '"';
-          }
-
-          return String(value);
-        }
-
-        function n3_colIndexToLetter_(columnIndex) {
-          var index = Number(columnIndex);
-          var letters = "";
-          var remainder;
-
-          if (!isFinite(index) || isNaN(index) || index <= 0 || Math.floor(index) !== index) {
-            return null;
-          }
-
-          while (index > 0) {
-            remainder = (index - 1) % 26;
-            letters = String.fromCharCode(65 + remainder) + letters;
-            index = Math.floor((index - 1) / 26);
-          }
-
-          return letters;
-        }
-
-        function n3_requestSaveDebugColumnMap_() {
-          if (!N3_SAVE_DEBUG_POPUP || n3SaveDebugHeaderToCol || n3SaveDebugHeaderMapRequested) {
-            return;
-          }
-
-          n3SaveDebugHeaderMapRequested = true;
-          google.script.run
-            .withSuccessHandler(function(res) {
-              var headerToCol;
-
-              if (
-                !res ||
-                !res.columnMap ||
-                res.columnMap.ok !== true ||
-                !res.columnMap.data ||
-                !res.columnMap.data.headerToCol ||
-                typeof res.columnMap.data.headerToCol !== "object"
-              ) {
-                return;
-              }
-
-              headerToCol = res.columnMap.data.headerToCol;
-              n3SaveDebugHeaderToCol = headerToCol;
-            })
-            .withFailureHandler(function() {
-              return;
-            })
-            .debug_readSheetStructure();
-        }
-
-        function n3_getDebugCellAddress_(fieldName, rowRef) {
-          var colIndex;
-          var colLetter;
-          var normalizedRowRef = n3_normalizeRowRef_(rowRef);
-
-          if (
-            !n3SaveDebugHeaderToCol ||
-            !Object.prototype.hasOwnProperty.call(n3SaveDebugHeaderToCol, fieldName)
-          ) {
-            return "column unknown on frontend";
-          }
-
-          colIndex = Number(n3SaveDebugHeaderToCol[fieldName]);
-          colLetter = n3_colIndexToLetter_(colIndex);
-          if (!colLetter) {
-            return "column unknown on frontend";
-          }
-
-          if (normalizedRowRef === null) {
-            return "column unknown on frontend";
-          }
-
-          return colLetter + String(normalizedRowRef);
-        }
-
-        function n3_buildSaveDebugValuesLine_(values) {
-          var parts = [];
-
-          N3_PERSISTABLE_FIELDS.forEach(function(fieldName) {
-            parts.push(fieldName + "=" + n3_formatSaveDebugValue_(values ? values[fieldName] : undefined));
-          });
-
-          return parts.join(", ");
-        }
-
-        function n3_buildSaveRequestDebugMessage_(payload) {
-          var lines = [];
-
-          if (!payload) {
-            return "Payload: null";
-          }
-
-          lines.push("id_master: " + n3_formatSaveDebugValue_(payload.id_master));
-          lines.push("expectedRowRefs: [" + (payload.expectedRowRefs || []).join(", ") + "]");
-          lines.push("updates:");
-          (payload.updates || []).forEach(function(update, index) {
-            var rowRef = update ? update.rowRef : undefined;
-            var values = update ? update.values : null;
-
-            lines.push("  " + String(index + 1) + ") rowRef=" + n3_formatSaveDebugValue_(rowRef));
-            N3_PERSISTABLE_FIELDS.forEach(function(fieldName) {
-              var cellAddress = n3_getDebugCellAddress_(fieldName, rowRef);
-              var fieldValue = values ? values[fieldName] : undefined;
-              lines.push(
-                "    " +
-                fieldName +
-                " -> " +
-                cellAddress +
-                " = " +
-                n3_formatSaveDebugValue_(fieldValue)
-              );
-            });
-          });
-
-          return lines.join("\n");
-        }
-
-        function n3_buildSaveResponseDebugMessage_(res) {
-          var lines = [];
-          var variantsReloaded;
-
-          lines.push("ok: " + n3_formatSaveDebugValue_(res && res.ok));
-          if (res && res.error) {
-            lines.push("error.code: " + n3_formatSaveDebugValue_(res.error.code));
-            lines.push("error.message: " + n3_formatSaveDebugValue_(res.error.message));
-          }
-
-          if (res && res.data) {
-            lines.push("data.id_master: " + n3_formatSaveDebugValue_(res.data.id_master));
-            variantsReloaded = Array.isArray(res.data.variantsReloaded) ? res.data.variantsReloaded : null;
-            if (!variantsReloaded) {
-              lines.push("data.variantsReloaded: not available");
-            } else {
-              lines.push("data.variantsReloaded count: " + String(variantsReloaded.length));
-              variantsReloaded.forEach(function(variant, index) {
-                var hasRowRef = variant && Object.prototype.hasOwnProperty.call(variant, "rowRef");
-                var rowRef = hasRowRef ? variant.rowRef : null;
-                var rowRefText = hasRowRef
-                  ? n3_formatSaveDebugValue_(variant.rowRef)
-                  : "unavailable in backend response";
-                lines.push(
-                  "  " +
-                  String(index + 1) +
-                  ") rowRef=" +
-                  rowRefText
-                );
-                N3_PERSISTABLE_FIELDS.forEach(function(fieldName) {
-                  var fieldValue = variant ? variant[fieldName] : undefined;
-                  var cellAddress = hasRowRef
-                    ? n3_getDebugCellAddress_(fieldName, rowRef)
-                    : "column unknown on frontend";
-                  lines.push(
-                    "    " +
-                    fieldName +
-                    " -> " +
-                    cellAddress +
-                    " = " +
-                    n3_formatSaveDebugValue_(fieldValue)
-                  );
-                });
-              });
-            }
-          } else {
-            lines.push("data: not available");
-          }
-
-          return lines.join("\n");
-        }
-
-        function n3_ensureSaveDebugModal_() {
-          var overlay;
-          var panel;
-          var title;
-          var text;
-          var footer;
-          var closeBtn;
-
-          if (n3SaveDebugModalEl) {
-            return;
-          }
-
-          overlay = document.createElement("div");
-          overlay.style.position = "fixed";
-          overlay.style.inset = "0";
-          overlay.style.zIndex = "99999";
-          overlay.style.display = "none";
-          overlay.style.alignItems = "center";
-          overlay.style.justifyContent = "center";
-          overlay.style.background = "rgba(0, 0, 0, 0.35)";
-
-          panel = document.createElement("div");
-          panel.style.width = "860px";
-          panel.style.maxWidth = "92vw";
-          panel.style.maxHeight = "88vh";
-          panel.style.display = "flex";
-          panel.style.flexDirection = "column";
-          panel.style.gap = "12px";
-          panel.style.background = "#FFFFFF";
-          panel.style.border = "1px solid #cfcfcf";
-          panel.style.padding = "16px";
-          panel.style.boxSizing = "border-box";
-
-          title = document.createElement("div");
-          title.style.fontFamily = "\"Roboto\", Arial, sans-serif";
-          title.style.fontSize = "16px";
-          title.style.fontWeight = "600";
-          title.style.color = "#000000";
-          title.textContent = "N3 SAVE DEBUG";
-
-          text = document.createElement("textarea");
-          text.readOnly = true;
-          text.style.width = "100%";
-          text.style.height = "68vh";
-          text.style.maxHeight = "68vh";
-          text.style.boxSizing = "border-box";
-          text.style.resize = "vertical";
-          text.style.fontFamily = "Menlo, Monaco, Consolas, monospace";
-          text.style.fontSize = "12px";
-          text.style.lineHeight = "1.35";
-          text.style.whiteSpace = "pre";
-          text.style.overflow = "auto";
-
-          footer = document.createElement("div");
-          footer.style.display = "flex";
-          footer.style.justifyContent = "flex-end";
-
-          closeBtn = document.createElement("button");
-          closeBtn.type = "button";
-          closeBtn.textContent = "Close";
-          closeBtn.style.height = "36px";
-          closeBtn.style.padding = "0 14px";
-          closeBtn.style.border = "1px solid #000000";
-          closeBtn.style.background = "#FFFFFF";
-          closeBtn.style.cursor = "pointer";
-          closeBtn.addEventListener("click", function() {
-            overlay.style.display = "none";
-          });
-
-          footer.appendChild(closeBtn);
-          panel.appendChild(title);
-          panel.appendChild(text);
-          panel.appendChild(footer);
-          overlay.appendChild(panel);
-          document.body.appendChild(overlay);
-
-          n3SaveDebugModalEl = overlay;
-          n3SaveDebugModalTitleEl = title;
-          n3SaveDebugModalTextEl = text;
-        }
-
-        function n3_showSaveDebugPopup_(title, message) {
-          if (!N3_SAVE_DEBUG_POPUP) {
-            return;
-          }
-
-          n3_ensureSaveDebugModal_();
-          if (!n3SaveDebugModalEl || !n3SaveDebugModalTitleEl || !n3SaveDebugModalTextEl) {
-            return;
-          }
-
-          n3SaveDebugModalTitleEl.textContent = title;
-          n3SaveDebugModalTextEl.value = message;
-          n3SaveDebugModalEl.style.display = "flex";
-          n3SaveDebugModalTextEl.focus();
-          n3SaveDebugModalTextEl.select();
-        }
-
         function n3_handleSaveClick_() {
           var activeMasterId = normalizeMasterId_(n3ActiveWorkMasterId || n3RenderedMasterId || uiActiveMasterId);
           var payload;
@@ -2698,19 +2411,10 @@
             return;
           }
 
-          n3_requestSaveDebugColumnMap_();
-          n3_showSaveDebugPopup_(
-            "N3 SAVE DEBUG — Request",
-            n3_buildSaveRequestDebugMessage_(payload)
-          );
           n3_setSaveLoading_(true);
           google.script.run
             .withSuccessHandler(function(res) {
               n3_setSaveLoading_(false);
-              n3_showSaveDebugPopup_(
-                "N3 SAVE DEBUG — Response",
-                n3_buildSaveResponseDebugMessage_(res)
-              );
               if (!res || res.ok !== true) {
                 n3RefreshDirtyState_();
                 return;
@@ -2718,12 +2422,8 @@
 
               n3_commitActiveWorkToReference_({ realignWork: true });
             })
-            .withFailureHandler(function(error) {
+            .withFailureHandler(function() {
               n3_setSaveLoading_(false);
-              n3_showSaveDebugPopup_(
-                "N3 SAVE DEBUG — Failure",
-                "Backend failure. Details: " + n3_formatSaveDebugValue_(error && error.message ? error.message : error)
-              );
               n3RefreshDirtyState_();
             })
             .api_saveMaster(payload);
@@ -3988,11 +3688,74 @@
           });
         }
 
-        document.addEventListener("keydown", function(e) {
-          var el = e.target;
+        function n3_commitEditableInputFromElement_(el) {
           var fieldName;
           var numeric;
           var variantIndex;
+
+          if (!el || !el.classList || !el.classList.contains("n3-input")) {
+            return false;
+          }
+
+          fieldName = el.getAttribute("data-field");
+          if (!fieldName || !Object.prototype.hasOwnProperty.call(N3_EDITABLE_FIELDS, fieldName)) {
+            return false;
+          }
+
+          numeric = n3_parseNumber_(el.value);
+          if (numeric === null) {
+            return false;
+          }
+
+          n3_updateRuntimeFromInput_(el, fieldName, numeric);
+          el.value = n3_formatByField_(fieldName, numeric);
+          variantIndex = Number(el.getAttribute("data-variant-index"));
+          if (!isNaN(variantIndex)) {
+            n3_renderCalculatedFieldsForUiColumn_(variantIndex);
+          }
+          n3RefreshDirtyState_();
+          return true;
+        }
+
+        document.addEventListener("beforeinput", function(e) {
+          var el = e.target;
+          var fieldName;
+          var currentValue;
+          var selectionStart;
+          var selectionEnd;
+          var nextValue;
+          var commaCount;
+
+          if (!el || !el.classList || !el.classList.contains("n3-input")) {
+            return;
+          }
+
+          fieldName = el.getAttribute("data-field");
+          if (!fieldName || !Object.prototype.hasOwnProperty.call(N3_EDITABLE_FIELDS, fieldName)) {
+            return;
+          }
+
+          if (typeof e.data !== "string" || e.data === "") {
+            return;
+          }
+
+          if (e.data.indexOf(".") !== -1) {
+            e.preventDefault();
+            return;
+          }
+
+          currentValue = typeof el.value === "string" ? el.value : "";
+          selectionStart = typeof el.selectionStart === "number" ? el.selectionStart : currentValue.length;
+          selectionEnd = typeof el.selectionEnd === "number" ? el.selectionEnd : selectionStart;
+          nextValue = currentValue.slice(0, selectionStart) + e.data + currentValue.slice(selectionEnd);
+          commaCount = (nextValue.match(/,/g) || []).length;
+          if (commaCount > 1) {
+            e.preventDefault();
+          }
+        });
+
+        document.addEventListener("keydown", function(e) {
+          var el = e.target;
 
           if (!el || !el.classList || !el.classList.contains("n3-input")) {
             return;
@@ -4003,27 +3766,18 @@
           }
 
           e.preventDefault();
-          fieldName = el.getAttribute("data-field");
-
-          if (!fieldName || !Object.prototype.hasOwnProperty.call(N3_EDITABLE_FIELDS, fieldName)) {
-            el.blur();
-            return;
-          }
-
-          numeric = n3_parseNumber_(el.value);
-          if (numeric === null) {
-            el.blur();
-            return;
-          }
-
-          n3_updateRuntimeFromInput_(el, fieldName, numeric);
-          el.value = n3_formatByField_(fieldName, numeric);
-          variantIndex = Number(el.getAttribute("data-variant-index"));
-          if (!isNaN(variantIndex)) {
-            n3_renderCalculatedFieldsForUiColumn_(variantIndex);
-          }
-          n3RefreshDirtyState_();
+          n3_commitEditableInputFromElement_(el);
           el.blur();
+        });
+
+        document.addEventListener("focusout", function(e) {
+          var el = e.target;
+
+          if (!el || !el.classList || !el.classList.contains("n3-input")) {
+            return;
+          }
+
+          n3_commitEditableInputFromElement_(el);
         });
 
         document.addEventListener("input", function(e) {
@@ -4064,7 +3818,6 @@
 
         appRoot.classList.add("is-overlay-mode");
         appRoot.style.setProperty("--t", UI_T_MS + "ms");
-        n3_requestSaveDebugColumnMap_();
         initN3ReadonlyBindings_();
         resetN3ReadonlyFields_();
         n3UpdateSaveButtonState_();
