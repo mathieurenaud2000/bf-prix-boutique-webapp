@@ -1472,6 +1472,11 @@
         var n3SaveRequestInFlight = false;
         var n3ResetRequestInFlight = false;
         var N3_SAVE_DEBUG_POPUP = true;
+        var n3SaveDebugHeaderToCol = null;
+        var n3SaveDebugHeaderMapRequested = false;
+        var n3SaveDebugModalEl = null;
+        var n3SaveDebugModalTitleEl = null;
+        var n3SaveDebugModalTextEl = null;
         var n3ButtonLoaderTimers = {
           save: null,
           reset: null
@@ -2408,6 +2413,79 @@
           return String(value);
         }
 
+        function n3_colIndexToLetter_(columnIndex) {
+          var index = Number(columnIndex);
+          var letters = "";
+          var remainder;
+
+          if (!isFinite(index) || isNaN(index) || index <= 0 || Math.floor(index) !== index) {
+            return null;
+          }
+
+          while (index > 0) {
+            remainder = (index - 1) % 26;
+            letters = String.fromCharCode(65 + remainder) + letters;
+            index = Math.floor((index - 1) / 26);
+          }
+
+          return letters;
+        }
+
+        function n3_requestSaveDebugColumnMap_() {
+          if (!N3_SAVE_DEBUG_POPUP || n3SaveDebugHeaderToCol || n3SaveDebugHeaderMapRequested) {
+            return;
+          }
+
+          n3SaveDebugHeaderMapRequested = true;
+          google.script.run
+            .withSuccessHandler(function(res) {
+              var headerToCol;
+
+              if (
+                !res ||
+                !res.columnMap ||
+                res.columnMap.ok !== true ||
+                !res.columnMap.data ||
+                !res.columnMap.data.headerToCol ||
+                typeof res.columnMap.data.headerToCol !== "object"
+              ) {
+                return;
+              }
+
+              headerToCol = res.columnMap.data.headerToCol;
+              n3SaveDebugHeaderToCol = headerToCol;
+            })
+            .withFailureHandler(function() {
+              return;
+            })
+            .debug_readSheetStructure();
+        }
+
+        function n3_getDebugCellAddress_(fieldName, rowRef) {
+          var colIndex;
+          var colLetter;
+          var normalizedRowRef = n3_normalizeRowRef_(rowRef);
+
+          if (
+            !n3SaveDebugHeaderToCol ||
+            !Object.prototype.hasOwnProperty.call(n3SaveDebugHeaderToCol, fieldName)
+          ) {
+            return "column unknown on frontend";
+          }
+
+          colIndex = Number(n3SaveDebugHeaderToCol[fieldName]);
+          colLetter = n3_colIndexToLetter_(colIndex);
+          if (!colLetter) {
+            return "column unknown on frontend";
+          }
+
+          if (normalizedRowRef === null) {
+            return "column unknown on frontend";
+          }
+
+          return colLetter + String(normalizedRowRef);
+        }
+
         function n3_buildSaveDebugValuesLine_(values) {
           var parts = [];
 
@@ -2429,14 +2507,22 @@
           lines.push("expectedRowRefs: [" + (payload.expectedRowRefs || []).join(", ") + "]");
           lines.push("updates:");
           (payload.updates || []).forEach(function(update, index) {
-            lines.push(
-              "  " +
-              String(index + 1) +
-              ") rowRef=" +
-              n3_formatSaveDebugValue_(update ? update.rowRef : undefined) +
-              " | " +
-              n3_buildSaveDebugValuesLine_(update ? update.values : null)
-            );
+            var rowRef = update ? update.rowRef : undefined;
+            var values = update ? update.values : null;
+
+            lines.push("  " + String(index + 1) + ") rowRef=" + n3_formatSaveDebugValue_(rowRef));
+            N3_PERSISTABLE_FIELDS.forEach(function(fieldName) {
+              var cellAddress = n3_getDebugCellAddress_(fieldName, rowRef);
+              var fieldValue = values ? values[fieldName] : undefined;
+              lines.push(
+                "    " +
+                fieldName +
+                " -> " +
+                cellAddress +
+                " = " +
+                n3_formatSaveDebugValue_(fieldValue)
+              );
+            });
           });
 
           return lines.join("\n");
@@ -2460,17 +2546,31 @@
             } else {
               lines.push("data.variantsReloaded count: " + String(variantsReloaded.length));
               variantsReloaded.forEach(function(variant, index) {
-                var rowRef = variant && Object.prototype.hasOwnProperty.call(variant, "rowRef")
+                var hasRowRef = variant && Object.prototype.hasOwnProperty.call(variant, "rowRef");
+                var rowRef = hasRowRef ? variant.rowRef : null;
+                var rowRefText = hasRowRef
                   ? n3_formatSaveDebugValue_(variant.rowRef)
                   : "unavailable in backend response";
                 lines.push(
                   "  " +
                   String(index + 1) +
                   ") rowRef=" +
-                  rowRef +
-                  " | " +
-                  n3_buildSaveDebugValuesLine_(variant)
+                  rowRefText
                 );
+                N3_PERSISTABLE_FIELDS.forEach(function(fieldName) {
+                  var fieldValue = variant ? variant[fieldName] : undefined;
+                  var cellAddress = hasRowRef
+                    ? n3_getDebugCellAddress_(fieldName, rowRef)
+                    : "column unknown on frontend";
+                  lines.push(
+                    "    " +
+                    fieldName +
+                    " -> " +
+                    cellAddress +
+                    " = " +
+                    n3_formatSaveDebugValue_(fieldValue)
+                  );
+                });
               });
             }
           } else {
@@ -2480,12 +2580,102 @@
           return lines.join("\n");
         }
 
+        function n3_ensureSaveDebugModal_() {
+          var overlay;
+          var panel;
+          var title;
+          var text;
+          var footer;
+          var closeBtn;
+
+          if (n3SaveDebugModalEl) {
+            return;
+          }
+
+          overlay = document.createElement("div");
+          overlay.style.position = "fixed";
+          overlay.style.inset = "0";
+          overlay.style.zIndex = "99999";
+          overlay.style.display = "none";
+          overlay.style.alignItems = "center";
+          overlay.style.justifyContent = "center";
+          overlay.style.background = "rgba(0, 0, 0, 0.35)";
+
+          panel = document.createElement("div");
+          panel.style.width = "860px";
+          panel.style.maxWidth = "92vw";
+          panel.style.maxHeight = "88vh";
+          panel.style.display = "flex";
+          panel.style.flexDirection = "column";
+          panel.style.gap = "12px";
+          panel.style.background = "#FFFFFF";
+          panel.style.border = "1px solid #cfcfcf";
+          panel.style.padding = "16px";
+          panel.style.boxSizing = "border-box";
+
+          title = document.createElement("div");
+          title.style.fontFamily = "\"Roboto\", Arial, sans-serif";
+          title.style.fontSize = "16px";
+          title.style.fontWeight = "600";
+          title.style.color = "#000000";
+          title.textContent = "N3 SAVE DEBUG";
+
+          text = document.createElement("textarea");
+          text.readOnly = true;
+          text.style.width = "100%";
+          text.style.height = "68vh";
+          text.style.maxHeight = "68vh";
+          text.style.boxSizing = "border-box";
+          text.style.resize = "vertical";
+          text.style.fontFamily = "Menlo, Monaco, Consolas, monospace";
+          text.style.fontSize = "12px";
+          text.style.lineHeight = "1.35";
+          text.style.whiteSpace = "pre";
+          text.style.overflow = "auto";
+
+          footer = document.createElement("div");
+          footer.style.display = "flex";
+          footer.style.justifyContent = "flex-end";
+
+          closeBtn = document.createElement("button");
+          closeBtn.type = "button";
+          closeBtn.textContent = "Close";
+          closeBtn.style.height = "36px";
+          closeBtn.style.padding = "0 14px";
+          closeBtn.style.border = "1px solid #000000";
+          closeBtn.style.background = "#FFFFFF";
+          closeBtn.style.cursor = "pointer";
+          closeBtn.addEventListener("click", function() {
+            overlay.style.display = "none";
+          });
+
+          footer.appendChild(closeBtn);
+          panel.appendChild(title);
+          panel.appendChild(text);
+          panel.appendChild(footer);
+          overlay.appendChild(panel);
+          document.body.appendChild(overlay);
+
+          n3SaveDebugModalEl = overlay;
+          n3SaveDebugModalTitleEl = title;
+          n3SaveDebugModalTextEl = text;
+        }
+
         function n3_showSaveDebugPopup_(title, message) {
           if (!N3_SAVE_DEBUG_POPUP) {
             return;
           }
 
-          window.alert(title + "\n\n" + message);
+          n3_ensureSaveDebugModal_();
+          if (!n3SaveDebugModalEl || !n3SaveDebugModalTitleEl || !n3SaveDebugModalTextEl) {
+            return;
+          }
+
+          n3SaveDebugModalTitleEl.textContent = title;
+          n3SaveDebugModalTextEl.value = message;
+          n3SaveDebugModalEl.style.display = "flex";
+          n3SaveDebugModalTextEl.focus();
+          n3SaveDebugModalTextEl.select();
         }
 
         function n3_handleSaveClick_() {
@@ -2508,6 +2698,7 @@
             return;
           }
 
+          n3_requestSaveDebugColumnMap_();
           n3_showSaveDebugPopup_(
             "N3 SAVE DEBUG — Request",
             n3_buildSaveRequestDebugMessage_(payload)
@@ -3873,6 +4064,7 @@
 
         appRoot.classList.add("is-overlay-mode");
         appRoot.style.setProperty("--t", UI_T_MS + "ms");
+        n3_requestSaveDebugColumnMap_();
         initN3ReadonlyBindings_();
         resetN3ReadonlyFields_();
         n3UpdateSaveButtonState_();
