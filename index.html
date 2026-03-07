@@ -729,6 +729,19 @@
         cursor: default;
       }
 
+      .n3-actions .n3-btn,
+      .n3-actions .n3-btn-saved {
+        width: 250px;
+        height: 50px;
+        border-radius: 5px;
+      }
+
+      .n3-btn-save.is-loading {
+        border-color: #000000;
+        color: #000000;
+        cursor: default;
+      }
+
       .n3-actions-wrap {
         display: flex;
         flex-direction: column;
@@ -2192,12 +2205,18 @@
             }
 
             n3SaveRequestInFlight = true;
+            if (n3SaveButton) {
+              n3SaveButton.classList.add("is-loading");
+            }
             n3_setButtonLoadingLabel_(n3SaveButton, "save");
             n3UpdateSaveButtonState_();
             return;
           }
 
           n3SaveRequestInFlight = false;
+          if (n3SaveButton) {
+            n3SaveButton.classList.remove("is-loading");
+          }
           n3_clearButtonLoadingLabel_("save");
           n3UpdateSaveButtonState_();
         }
@@ -2473,8 +2492,9 @@
           if (n3SaveButton) {
             if (!n3SaveRequestInFlight) {
               n3SaveButton.textContent = isDirty ? "Enregistrer" : "Enregistré";
+              n3SaveButton.classList.remove("is-loading");
             }
-            n3SaveButton.disabled = isAnyLoading || !isDirty;
+            n3SaveButton.disabled = !isDirty;
           }
 
           if (n3ResetButton) {
