@@ -2038,19 +2038,11 @@
 
           editableByVariantKey = workState.editableByVariantKey;
           Object.keys(editableByVariantKey).forEach(function(runtimeKey) {
-            var prefix = "rowRef:";
-            var rowRefValue;
-
-            if (runtimeKey.indexOf(prefix) !== 0) {
+            if (!runtimeKey) {
               return;
             }
 
-            rowRefValue = runtimeKey.slice(prefix.length).trim();
-            if (rowRefValue === "") {
-              return;
-            }
-
-            variantsByRowRef[rowRefValue] = editableByVariantKey[runtimeKey];
+            variantsByRowRef[runtimeKey] = editableByVariantKey[runtimeKey];
           });
 
           return variantsByRowRef;
@@ -2070,19 +2062,11 @@
 
           editableByVariantKey = referenceState.editableByVariantKey;
           Object.keys(editableByVariantKey).forEach(function(runtimeKey) {
-            var prefix = "rowRef:";
-            var rowRefValue;
-
-            if (runtimeKey.indexOf(prefix) !== 0) {
+            if (!runtimeKey) {
               return;
             }
 
-            rowRefValue = runtimeKey.slice(prefix.length).trim();
-            if (rowRefValue === "") {
-              return;
-            }
-
-            variantsByRowRef[rowRefValue] = editableByVariantKey[runtimeKey];
+            variantsByRowRef[runtimeKey] = editableByVariantKey[runtimeKey];
           });
 
           return variantsByRowRef;
