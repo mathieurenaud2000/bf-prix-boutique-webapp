@@ -344,6 +344,7 @@ function writeMasterBatch(idMaster, expectedRowRefs, updates) {
     if (reloadedRows && reloadedRows.ok === false) {
       return reloadedRows;
     }
+    reloadedRows = reloadedRows.data.rows;
 
     var reloadedRowsWithRefs = reloadedRows.map(function(row, index) {
       return {
