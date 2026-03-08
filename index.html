@@ -3026,6 +3026,11 @@
             return false;
           }
 
+          if (n3ActiveWorkMasterId !== null && n3ActiveWorkState) {
+            n3_syncVisibleInputsToRuntime_();
+            n3RefreshDirtyState_();
+          }
+
           if (!n3_hasUnsavedChanges_()) {
             if (typeof proceedAction === "function") {
               proceedAction();
@@ -4152,11 +4157,12 @@
             return options;
           }
 
-          if (options.saved !== true && options.skipUnsavedConfirm !== true && n3_hasUnsavedChanges_()) {
-            n3_confirmLeaveIfDirty_(function() {
+          if (options.saved !== true && options.skipUnsavedConfirm !== true) {
+            if (n3_confirmLeaveIfDirty_(function() {
               ui_closeC_toB({ saved: false, skipUnsavedConfirm: true });
-            });
-            return options;
+            }) === false) {
+              return options;
+            }
           }
 
           n3_hideUnsavedLeavePopup_();
@@ -4301,10 +4307,7 @@
             stateB.classList.contains("is-c-close");
 
           if (isInC) {
-            if (
-              normalizeMasterId_(masterId) !== normalizeMasterId_(n3RenderedMasterId || uiActiveMasterId) &&
-              n3_hasUnsavedChanges_()
-            ) {
+            if (normalizeMasterId_(masterId) !== normalizeMasterId_(n3RenderedMasterId || uiActiveMasterId)) {
               n3_confirmLeaveIfDirty_(function() {
                 titleItemActive.textContent = visibleName;
                 loadAndRenderN3ForMaster_(masterId);
@@ -4322,9 +4325,25 @@
         });
 
         closeButton.addEventListener("click", function() {
+          var isInC;
+
           if (ui_isNavigationBlockedDuringSave_()) {
             return;
           }
+
+          isInC =
+            stateB.classList.contains("is-c-pre") ||
+            stateB.classList.contains("is-c-anim") ||
+            stateB.classList.contains("is-c-stable") ||
+            stateB.classList.contains("is-c-close");
+
+          if (isInC) {
+            n3_confirmLeaveIfDirty_(function() {
+              closeStateB();
+            });
+            return;
+          }
+
           closeStateB();
         });
 
