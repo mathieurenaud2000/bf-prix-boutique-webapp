@@ -1879,6 +1879,10 @@
           listElement.setAttribute("data-has-selection", hasSelection ? "true" : "false");
         }
 
+        function ui_isNavigationBlockedDuringSave_() {
+          return n3SaveRequestInFlight === true;
+        }
+
         function ui_getPersistedMasterStatus_(masterId) {
           var normalizedId = normalizeMasterId_(masterId);
           var collectionKeys;
@@ -3743,6 +3747,10 @@
         function ui_openB_fromA(collectionKey) {
           var token;
 
+          if (ui_isNavigationBlockedDuringSave_()) {
+            return;
+          }
+
           if (UI_IS_TRANSITIONING) {
             return;
           }
@@ -3785,6 +3793,10 @@
 
         function ui_closeB_toA() {
           var token;
+
+          if (ui_isNavigationBlockedDuringSave_()) {
+            return;
+          }
 
           if (UI_IS_TRANSITIONING) {
             return;
@@ -3830,6 +3842,10 @@
 
         function ui_openC_fromB(masterId) {
           var token;
+
+          if (ui_isNavigationBlockedDuringSave_()) {
+            return;
+          }
 
           if (UI_IS_TRANSITIONING) {
             return;
@@ -3877,6 +3893,10 @@
         function ui_closeC_toB(options) {
           var token;
           var closingMasterId;
+
+          if (ui_isNavigationBlockedDuringSave_()) {
+            return options;
+          }
 
           if (UI_IS_TRANSITIONING) {
             return options;
@@ -3944,6 +3964,10 @@
           var target = event.target;
           var collectionKey = null;
 
+          if (ui_isNavigationBlockedDuringSave_()) {
+            return;
+          }
+
           while (target && target !== collectionsList && !target.classList.contains("collection-row")) {
             target = target.parentNode;
           }
@@ -3969,6 +3993,10 @@
           var target = event.target;
           var collectionKey = null;
 
+          if (ui_isNavigationBlockedDuringSave_()) {
+            return;
+          }
+
           while (target && target !== collectionsListB && !target.classList.contains("collection-row")) {
             target = target.parentNode;
           }
@@ -3993,6 +4021,10 @@
           var visibleName = "Bijou";
           var cellName = null;
           var isInC = false;
+
+          if (ui_isNavigationBlockedDuringSave_()) {
+            return;
+          }
 
           while (target && target !== mastersList && !target.classList.contains("collection-row")) {
             target = target.parentNode;
@@ -4025,10 +4057,16 @@
         });
 
         closeButton.addEventListener("click", function() {
+          if (ui_isNavigationBlockedDuringSave_()) {
+            return;
+          }
           closeStateB();
         });
 
         closeButtonN3.addEventListener("click", function() {
+          if (ui_isNavigationBlockedDuringSave_()) {
+            return;
+          }
           ui_closeC_toB({ saved: false });
         });
 
