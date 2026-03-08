@@ -476,6 +476,7 @@
       .n3-tabs.is-hidden,
       .n3-alert.is-hidden,
       .n3-saving.is-hidden,
+      .n3-unsaved-popup.is-hidden,
       .n3-btn-saved.is-hidden {
         display: none;
       }
@@ -770,6 +771,52 @@
         gap: 48px;
         padding-top: 48px;
         padding-bottom: 48px;
+      }
+
+      .n3-unsaved-popup {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.9);
+        z-index: 3;
+      }
+
+      .n3-unsaved-box {
+        width: min(560px, calc(100% - 64px));
+        border: 1px solid #000000;
+        background: #FFFFFF;
+        padding: 24px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .n3-unsaved-text {
+        color: #000000;
+        font-family: "Roboto", Arial, sans-serif;
+        font-size: 18px;
+        line-height: 1.4;
+      }
+
+      .n3-unsaved-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 24px;
+      }
+
+      .n3-unsaved-save {
+        background: #16A34A;
+        border-color: #16A34A;
+        color: #FFFFFF;
+      }
+
+      .n3-unsaved-close {
+        background: #FFFFFF;
+        border-color: #000000;
+        color: #000000;
       }
 
       .n3-saving {
@@ -1540,6 +1587,15 @@
                   <button class="n3-btn-saved is-hidden" type="button"><span class="material-symbols-outlined">check</span><span>Enregistré</span></button>
                 </div>
               </div>
+              <div id="n3-unsaved-popup" class="n3-unsaved-popup is-hidden" role="dialog" aria-modal="true">
+                <div class="n3-unsaved-box">
+                  <div class="n3-unsaved-text">Des modifications n'ont pas été enregistrées.<br>Que voulez-vous faire ?</div>
+                  <div class="n3-unsaved-actions">
+                    <button id="n3-unsaved-save" class="n3-btn n3-unsaved-save" type="button">Enregistrer</button>
+                    <button id="n3-unsaved-close" class="n3-btn n3-unsaved-close" type="button">Fermer</button>
+                  </div>
+                </div>
+              </div>
               <div id="n3-saving" class="n3-saving is-hidden">
                 <div class="n3-spinner"></div>
               </div>
@@ -1563,6 +1619,9 @@
         var titleItemActive = document.getElementById("title-item-active");
         var n3Root = document.getElementById("n3-root");
         var n3Saving = document.getElementById("n3-saving");
+        var n3UnsavedPopup = document.getElementById("n3-unsaved-popup");
+        var n3UnsavedSaveButton = document.getElementById("n3-unsaved-save");
+        var n3UnsavedCloseButton = document.getElementById("n3-unsaved-close");
         var n3Tabs = document.getElementById("n3-tabs");
         var n3SaveButton = document.querySelector(".n3-btn-save");
         var n3ResetButton = document.querySelector(".n3-btn-reset");
@@ -1595,6 +1654,7 @@
           save: null,
           reset: null
         };
+        var n3PendingLeaveAction = null;
         var N3_PERSISTABLE_FIELDS = [
           "temps",
           "metal_prix",
@@ -2781,9 +2841,10 @@
           return true;
         }
 
-        function n3_handleSaveClick_() {
+        function n3_handleSaveClick_(options) {
           var activeMasterId = normalizeMasterId_(n3ActiveWorkMasterId || n3RenderedMasterId || uiActiveMasterId);
           var payload;
+          var onSuccess = options && typeof options.onSuccess === "function" ? options.onSuccess : null;
 
           if (
             n3SaveRequestInFlight ||
@@ -2817,6 +2878,9 @@
                 realignWork: true,
                 persistedStatus: persistedStatus
               });
+              if (onSuccess) {
+                onSuccess();
+              }
             })
             .withFailureHandler(function() {
               n3_setSaveLoading_(false);
@@ -2875,6 +2939,40 @@
             }
             n3ResetButton.disabled = isAnyLoading || !isDirty;
           }
+        }
+
+        function n3_hasUnsavedChanges_() {
+          return !!(n3ActiveMasterDiff && n3ActiveMasterDiff.isDirty === true);
+        }
+
+        function n3_hideUnsavedLeavePopup_() {
+          n3PendingLeaveAction = null;
+          if (n3UnsavedPopup) {
+            n3UnsavedPopup.classList.add("is-hidden");
+          }
+        }
+
+        function n3_showUnsavedLeavePopup_(proceedAction) {
+          n3PendingLeaveAction = typeof proceedAction === "function" ? proceedAction : null;
+          if (n3UnsavedPopup) {
+            n3UnsavedPopup.classList.remove("is-hidden");
+          }
+        }
+
+        function n3_confirmLeaveIfDirty_(proceedAction) {
+          if (n3SaveRequestInFlight || n3ResetRequestInFlight) {
+            return false;
+          }
+
+          if (!n3_hasUnsavedChanges_()) {
+            if (typeof proceedAction === "function") {
+              proceedAction();
+            }
+            return true;
+          }
+
+          n3_showUnsavedLeavePopup_(proceedAction);
+          return false;
         }
 
         function n3RefreshDirtyState_() {
@@ -3978,6 +4076,8 @@
           var token;
           var closingMasterId;
 
+          options = options || {};
+
           if (ui_isNavigationBlockedDuringSave_()) {
             return options;
           }
@@ -3990,6 +4090,14 @@
             return options;
           }
 
+          if (options.saved !== true && options.skipUnsavedConfirm !== true && n3_hasUnsavedChanges_()) {
+            n3_confirmLeaveIfDirty_(function() {
+              ui_closeC_toB({ saved: false, skipUnsavedConfirm: true });
+            });
+            return options;
+          }
+
+          n3_hideUnsavedLeavePopup_();
           closingMasterId = normalizeMasterId_(n3ActiveWorkMasterId || n3RenderedMasterId || uiActiveMasterId);
           token = ui_beginTransition();
           if (options && options.saved === true) {
@@ -4131,6 +4239,17 @@
             stateB.classList.contains("is-c-close");
 
           if (isInC) {
+            if (
+              normalizeMasterId_(masterId) !== normalizeMasterId_(n3RenderedMasterId || uiActiveMasterId) &&
+              n3_hasUnsavedChanges_()
+            ) {
+              n3_confirmLeaveIfDirty_(function() {
+                titleItemActive.textContent = visibleName;
+                loadAndRenderN3ForMaster_(masterId);
+              });
+              return;
+            }
+
             titleItemActive.textContent = visibleName;
             loadAndRenderN3ForMaster_(masterId);
             return;
@@ -4158,6 +4277,32 @@
           backButtonN2.addEventListener("click", function() {
             if (closeButtonN3) {
               closeButtonN3.click();
+            }
+          });
+        }
+
+        if (n3UnsavedSaveButton) {
+          n3UnsavedSaveButton.addEventListener("click", function() {
+            var proceedAction = n3PendingLeaveAction;
+
+            n3_hideUnsavedLeavePopup_();
+            n3_handleSaveClick_({
+              onSuccess: function() {
+                if (typeof proceedAction === "function") {
+                  proceedAction();
+                }
+              }
+            });
+          });
+        }
+
+        if (n3UnsavedCloseButton) {
+          n3UnsavedCloseButton.addEventListener("click", function() {
+            var proceedAction = n3PendingLeaveAction;
+
+            n3_hideUnsavedLeavePopup_();
+            if (typeof proceedAction === "function") {
+              proceedAction();
             }
           });
         }
