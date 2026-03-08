@@ -432,6 +432,7 @@
       }
 
       .n3-root {
+        --n3-unsaved-band-height: 170px;
         position: relative;
         display: flex;
         flex-direction: column;
@@ -792,14 +793,16 @@
         top: 2px;
         left: 0;
         right: 0;
-        min-height: 124px;
+        min-height: var(--n3-unsaved-band-height);
         display: flex;
         flex-direction: column;
-        justify-content: center;
+        justify-content: flex-start;
+        align-items: flex-start;
         gap: 16px;
-        padding: 16px 24px;
+        padding: 36px 0;
         box-sizing: border-box;
         background: #FFFFFF;
+        border-bottom: 2px solid #000000;
         opacity: 1;
         transition: opacity var(--t) var(--ease);
         z-index: 3;
@@ -821,7 +824,7 @@
 
       .n3-unsaved-actions {
         display: flex;
-        justify-content: flex-end;
+        justify-content: flex-start;
         gap: 48px;
       }
 
@@ -844,13 +847,13 @@
       }
 
       #n3-root[data-unsaved-warning="true"] .n3-main-content {
-        transform: translateY(124px);
+        transform: translateY(var(--n3-unsaved-band-height));
         pointer-events: none;
       }
 
       #n3-root[data-unsaved-warning="true"] .n3-moving-divider {
-        opacity: 1;
-        height: 2px;
+        opacity: 0;
+        height: 0;
       }
 
       #state-b .panel-n3[data-unsaved-warning="true"] .header-row {
