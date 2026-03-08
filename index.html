@@ -809,6 +809,58 @@
         appearance: none;
       }
 
+      #state-b .panel-n2 .header-left {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+
+      #state-b #btn-back-n2 {
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 80px;
+        min-width: 80px;
+        height: 72px;
+        margin: 0;
+        padding: 0;
+        border: none;
+        background: none;
+        color: #000000;
+        cursor: pointer;
+        box-sizing: border-box;
+        -webkit-appearance: none;
+        appearance: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-start;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity 200ms ease;
+      }
+
+      #state-b #btn-back-n2 .material-symbols-outlined,
+      #state-b #btn-close-n3 .material-symbols-outlined {
+        font-size: 56px;
+        line-height: 1;
+      }
+
+      #state-b #btn-close-n3 {
+        width: 80px;
+        min-width: 80px;
+        height: 72px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-end;
+      }
+
+      #title-collection-active {
+        transition: transform 200ms ease;
+        transform: translateX(0);
+      }
+
       #state-b #btn-close-n2:hover,
       #state-b #btn-close-n3:hover {
         color: #d92d20;
@@ -996,12 +1048,28 @@
         pointer-events: none;
       }
 
+      #state-b.is-c-pre #btn-back-n2,
+      #state-b.is-c-anim #btn-back-n2,
+      #state-b.is-c-stable #btn-back-n2,
+      #state-b.is-c-close #btn-back-n2 {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+      }
+
       #state-b.is-c-pre #btn-close-n3,
       #state-b.is-c-anim #btn-close-n3,
       #state-b.is-c-stable #btn-close-n3,
       #state-b.is-c-close #btn-close-n3 {
         visibility: visible;
         pointer-events: auto;
+      }
+
+      #state-b.is-c-pre #title-collection-active,
+      #state-b.is-c-anim #title-collection-active,
+      #state-b.is-c-stable #title-collection-active,
+      #state-b.is-c-close #title-collection-active {
+        transform: translateX(150px);
       }
 
       #state-a .collection-row[data-active="true"] {
@@ -1220,6 +1288,9 @@
           <div class="panel-inner">
             <div class="header-row">
               <div class="header-left">
+                <button id="btn-back-n2" type="button" aria-label="Retour">
+                  <span class="material-symbols-outlined">arrow_back</span>
+                </button>
                 <h1 id="title-collection-active">Collection</h1>
               </div>
               <div class="header-right">
@@ -1473,6 +1544,7 @@
         var collectionsListB = document.getElementById("collections-list-b");
         var mastersList = document.getElementById("masters-list");
         var titleCollectionActive = document.getElementById("title-collection-active");
+        var backButtonN2 = document.getElementById("btn-back-n2");
         var closeButton = document.getElementById("btn-close-n2");
         var closeButtonN3 = document.getElementById("btn-close-n3");
         var titleTool = document.getElementById("title-tool");
@@ -4069,6 +4141,14 @@
           }
           ui_closeC_toB({ saved: false });
         });
+
+        if (backButtonN2) {
+          backButtonN2.addEventListener("click", function() {
+            if (closeButtonN3) {
+              closeButtonN3.click();
+            }
+          });
+        }
 
         if (n3SaveButton) {
           n3SaveButton.addEventListener("click", function() {
