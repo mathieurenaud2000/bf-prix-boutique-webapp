@@ -752,6 +752,18 @@
         color: #FFFFFF;
       }
 
+      .profit-good {
+        color: #1f7a1f;
+      }
+
+      .profit-bad {
+        color: #cc0000;
+      }
+
+      .price-border-good {
+        border-color: #1f7a1f;
+      }
+
       .n3-actions-wrap {
         display: flex;
         flex-direction: column;
@@ -2624,6 +2636,63 @@
           setN3FieldValue_("m_pou", uiCol, derivedValues.m_pou);
           setN3FieldValue_("l_pou", uiCol, derivedValues.l_pou);
           setN3FieldValue_("ma_pou", uiCol, derivedValues.ma_pou);
+          n3_applyProfitVisualStateForUiColumn_(uiCol, derivedValues.m_pou);
+        }
+
+        function n3_applyProfitVisualStateForUiColumn_(uiCol, mPouValue) {
+          var profitMaValueNode;
+          var profitMaUnitNode;
+          var officialPriceInputNode;
+          var thresholdValue = Number(mPouValue);
+          var isNumeric = isFinite(thresholdValue) && !isNaN(thresholdValue);
+          var isGood = isNumeric && thresholdValue >= 0.2;
+          var isBad = isNumeric && thresholdValue < 0.2;
+
+          if (!n3Root) {
+            return;
+          }
+
+          profitMaValueNode = n3Root.querySelector(
+            '[data-field="ma_pou"][data-variant-index="' + String(uiCol) + '"]'
+          );
+          officialPriceInputNode = n3Root.querySelector(
+            '[data-field="bf_pri"][data-variant-index="' + String(uiCol) + '"]'
+          );
+          profitMaUnitNode = profitMaValueNode && profitMaValueNode.parentElement
+            ? profitMaValueNode.parentElement.querySelector(".n3-unit")
+            : null;
+
+          if (profitMaValueNode) {
+            profitMaValueNode.classList.remove("profit-good", "profit-bad");
+          }
+          if (profitMaUnitNode) {
+            profitMaUnitNode.classList.remove("profit-good", "profit-bad");
+          }
+          if (officialPriceInputNode) {
+            officialPriceInputNode.classList.remove("price-border-good");
+          }
+
+          if (isGood) {
+            if (profitMaValueNode) {
+              profitMaValueNode.classList.add("profit-good");
+            }
+            if (profitMaUnitNode) {
+              profitMaUnitNode.classList.add("profit-good");
+            }
+            if (officialPriceInputNode) {
+              officialPriceInputNode.classList.add("price-border-good");
+            }
+            return;
+          }
+
+          if (isBad) {
+            if (profitMaValueNode) {
+              profitMaValueNode.classList.add("profit-bad");
+            }
+            if (profitMaUnitNode) {
+              profitMaUnitNode.classList.add("profit-bad");
+            }
+          }
         }
 
         function n3_getVariantRuntimeKey_(variant, index) {
