@@ -2583,8 +2583,8 @@
           var l_pri = (bf_pri / 2) * 0.025;
           var l_com = (bf_pri / 2) * 0.05;
           var l_cou = cout_base + m_pur + m_fix + l_pri + l_com;
-          var l_pro = l_pri - l_cou;
-          var l_pou = l_pri !== 0 ? l_pro / l_pri : null;
+          var l_pro = m_pri - l_cou;
+          var l_pou = m_pri !== 0 ? l_pro / m_pri : null;
           var ma_pri = bf_pri * 0.435;
           var ma_com = ma_pri * 0;
           var ma_fix = ma_pri * 0.2835;
