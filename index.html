@@ -432,7 +432,7 @@
       }
 
       .n3-root {
-        --n3-unsaved-band-height: 176px;
+        --n3-unsaved-band-height: 170px;
         position: relative;
         display: flex;
         flex-direction: column;
@@ -798,8 +798,8 @@
         flex-direction: column;
         justify-content: flex-start;
         align-items: flex-start;
-        gap: 0;
-        padding: 36px 0 39px;
+        gap: 16px;
+        padding: 36px 0;
         box-sizing: border-box;
         background: #FFFFFF;
         border-bottom: 2px solid #000000;
@@ -814,12 +814,6 @@
         pointer-events: none;
       }
 
-      #n3-root[data-unsaved-warning="true"] .n3-unsaved-band {
-        opacity: 1;
-        visibility: visible;
-        pointer-events: auto;
-      }
-
       .n3-unsaved-text {
         color: #000000;
         font-family: "Roboto", Arial, sans-serif;
@@ -832,7 +826,7 @@
         display: flex;
         justify-content: flex-start;
         gap: 48px;
-        margin-top: 21px;
+        margin-top: 24px;
       }
 
       .n3-unsaved-actions .n3-btn {
@@ -854,7 +848,7 @@
       }
 
       #n3-root[data-unsaved-warning="true"] .n3-main-content {
-        transform: translateY(calc(var(--n3-unsaved-band-height) + 2px));
+        transform: translateY(var(--n3-unsaved-band-height));
         pointer-events: none;
       }
 
@@ -1489,7 +1483,7 @@
             <div id="n3-root" class="n3-root">
               <div class="n3-line-2px"></div>
               <div id="n3-unsaved-band" class="n3-unsaved-band is-hidden">
-                <div class="n3-unsaved-text">Des modifications n'ont pas été enregistrées.</div>
+                <div class="n3-unsaved-text">Des modifications n'ont pas été enregistrées!!!</div>
                 <div class="n3-unsaved-actions">
                   <button id="n3-unsaved-save" class="n3-btn n3-unsaved-save" type="button">Enregistrer</button>
                   <button id="n3-unsaved-close" class="n3-btn n3-unsaved-close" type="button">Fermer</button>
@@ -3026,11 +3020,6 @@
             return false;
           }
 
-          if (n3ActiveWorkMasterId !== null && n3ActiveWorkState) {
-            n3_syncVisibleInputsToRuntime_();
-            n3RefreshDirtyState_();
-          }
-
           if (!n3_hasUnsavedChanges_()) {
             if (typeof proceedAction === "function") {
               proceedAction();
@@ -4157,12 +4146,11 @@
             return options;
           }
 
-          if (options.saved !== true && options.skipUnsavedConfirm !== true) {
-            if (n3_confirmLeaveIfDirty_(function() {
+          if (options.saved !== true && options.skipUnsavedConfirm !== true && n3_hasUnsavedChanges_()) {
+            n3_confirmLeaveIfDirty_(function() {
               ui_closeC_toB({ saved: false, skipUnsavedConfirm: true });
-            }) === false) {
-              return options;
-            }
+            });
+            return options;
           }
 
           n3_hideUnsavedLeavePopup_();
@@ -4307,7 +4295,10 @@
             stateB.classList.contains("is-c-close");
 
           if (isInC) {
-            if (normalizeMasterId_(masterId) !== normalizeMasterId_(n3RenderedMasterId || uiActiveMasterId)) {
+            if (
+              normalizeMasterId_(masterId) !== normalizeMasterId_(n3RenderedMasterId || uiActiveMasterId) &&
+              n3_hasUnsavedChanges_()
+            ) {
               n3_confirmLeaveIfDirty_(function() {
                 titleItemActive.textContent = visibleName;
                 loadAndRenderN3ForMaster_(masterId);
@@ -4325,25 +4316,9 @@
         });
 
         closeButton.addEventListener("click", function() {
-          var isInC;
-
           if (ui_isNavigationBlockedDuringSave_()) {
             return;
           }
-
-          isInC =
-            stateB.classList.contains("is-c-pre") ||
-            stateB.classList.contains("is-c-anim") ||
-            stateB.classList.contains("is-c-stable") ||
-            stateB.classList.contains("is-c-close");
-
-          if (isInC) {
-            n3_confirmLeaveIfDirty_(function() {
-              closeStateB();
-            });
-            return;
-          }
-
           closeStateB();
         });
 
