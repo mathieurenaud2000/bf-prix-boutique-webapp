@@ -1503,6 +1503,7 @@
         var n3ActiveMasterDiff = null;
         var uiMasterDetailInFlightById = {};
         var uiMasterRenderRequestId = 0;
+        var uiRuntimeMasterStatusById = {};
         var n3BindingsReady = false;
         var n3SaveRequestInFlight = false;
         var n3ResetRequestInFlight = false;
@@ -1878,6 +1879,249 @@
           listElement.setAttribute("data-has-selection", hasSelection ? "true" : "false");
         }
 
+        function ui_getPersistedMasterStatus_(masterId) {
+          var normalizedId = normalizeMasterId_(masterId);
+          var collectionKeys;
+          var i;
+          var j;
+          var masters;
+          var master;
+
+          if (
+            !normalizedId ||
+            !uiCache ||
+            !uiCache.mastersByCollection ||
+            typeof uiCache.mastersByCollection !== "object"
+          ) {
+            return "neutral";
+          }
+
+          collectionKeys = Object.keys(uiCache.mastersByCollection);
+          for (i = 0; i < collectionKeys.length; i += 1) {
+            masters = Array.isArray(uiCache.mastersByCollection[collectionKeys[i]])
+              ? uiCache.mastersByCollection[collectionKeys[i]]
+              : [];
+            for (j = 0; j < masters.length; j += 1) {
+              master = masters[j];
+              if (normalizeMasterId_(master && master.key) === normalizedId) {
+                return master && master.status ? String(master.status) : "neutral";
+              }
+            }
+          }
+
+          return "neutral";
+        }
+
+        function ui_setPersistedMasterStatus_(masterId, status) {
+          var normalizedId = normalizeMasterId_(masterId);
+          var nextStatus = status ? String(status) : "neutral";
+          var collectionKeys;
+          var i;
+          var j;
+          var masters;
+          var master;
+
+          if (
+            !normalizedId ||
+            !uiCache ||
+            !uiCache.mastersByCollection ||
+            typeof uiCache.mastersByCollection !== "object"
+          ) {
+            return;
+          }
+
+          collectionKeys = Object.keys(uiCache.mastersByCollection);
+          for (i = 0; i < collectionKeys.length; i += 1) {
+            masters = Array.isArray(uiCache.mastersByCollection[collectionKeys[i]])
+              ? uiCache.mastersByCollection[collectionKeys[i]]
+              : [];
+            for (j = 0; j < masters.length; j += 1) {
+              master = masters[j];
+              if (normalizeMasterId_(master && master.key) === normalizedId) {
+                master.status = nextStatus;
+                return;
+              }
+            }
+          }
+        }
+
+        function ui_getEffectiveMasterStatus_(masterId) {
+          var normalizedId = normalizeMasterId_(masterId);
+          var key;
+
+          if (!normalizedId) {
+            return "neutral";
+          }
+
+          key = String(normalizedId);
+          if (Object.prototype.hasOwnProperty.call(uiRuntimeMasterStatusById, key)) {
+            return uiRuntimeMasterStatusById[key];
+          }
+
+          return ui_getPersistedMasterStatus_(normalizedId);
+        }
+
+        function ui_setRuntimeMasterStatus_(masterId, status) {
+          var normalizedId = normalizeMasterId_(masterId);
+
+          if (!normalizedId) {
+            return;
+          }
+
+          uiRuntimeMasterStatusById[String(normalizedId)] = status ? String(status) : "neutral";
+        }
+
+        function ui_clearRuntimeMasterStatus_(masterId) {
+          var normalizedId = normalizeMasterId_(masterId);
+
+          if (!normalizedId) {
+            return;
+          }
+
+          delete uiRuntimeMasterStatusById[String(normalizedId)];
+        }
+
+        function ui_recomputeCollectionStatusesFromEffectiveMasters_() {
+          var statusByCollectionKey = {};
+
+          if (
+            !uiCache ||
+            !Array.isArray(uiCache.collections) ||
+            !uiCache.mastersByCollection ||
+            typeof uiCache.mastersByCollection !== "object"
+          ) {
+            return;
+          }
+
+          Object.keys(uiCache.mastersByCollection).forEach(function(collectionKey) {
+            var masters = Array.isArray(uiCache.mastersByCollection[collectionKey])
+              ? uiCache.mastersByCollection[collectionKey]
+              : [];
+            var hasProblem = false;
+            var hasNeutral = false;
+
+            if (masters.length === 0) {
+              statusByCollectionKey[String(collectionKey)] = "neutral";
+              return;
+            }
+
+            masters.forEach(function(master) {
+              var status = ui_getEffectiveMasterStatus_(master && master.key);
+
+              if (status === "problem") {
+                hasProblem = true;
+                return;
+              }
+
+              if (status !== "ok") {
+                hasNeutral = true;
+              }
+            });
+
+            if (hasProblem) {
+              statusByCollectionKey[String(collectionKey)] = "problem";
+            } else if (hasNeutral) {
+              statusByCollectionKey[String(collectionKey)] = "neutral";
+            } else {
+              statusByCollectionKey[String(collectionKey)] = "ok";
+            }
+          });
+
+          uiCache.collections.forEach(function(collectionItem) {
+            var key = String(collectionItem.key);
+
+            if (Object.prototype.hasOwnProperty.call(statusByCollectionKey, key)) {
+              collectionItem.status = statusByCollectionKey[key];
+            }
+          });
+        }
+
+        function ui_updateVisibleCollectionRowStatuses_() {
+          var statusByCollectionKey = {};
+          var listElements = [collectionsList, collectionsListB];
+
+          if (!uiCache || !Array.isArray(uiCache.collections)) {
+            return;
+          }
+
+          uiCache.collections.forEach(function(collectionItem) {
+            statusByCollectionKey[String(collectionItem.key)] = collectionItem.status || "neutral";
+          });
+
+          listElements.forEach(function(listElement) {
+            Array.prototype.forEach.call(listElement.querySelectorAll(".collection-row[data-collection-key]"), function(row) {
+              var key = row.getAttribute("data-collection-key");
+
+              if (Object.prototype.hasOwnProperty.call(statusByCollectionKey, String(key))) {
+                row.setAttribute("data-status", statusByCollectionKey[String(key)]);
+              }
+            });
+          });
+        }
+
+        function ui_updateVisibleMasterRowStatuses_() {
+          if (!mastersList) {
+            return;
+          }
+
+          Array.prototype.forEach.call(mastersList.querySelectorAll(".collection-row[data-master-key]"), function(row) {
+            var masterKey = row.getAttribute("data-master-key");
+
+            row.setAttribute("data-status", ui_getEffectiveMasterStatus_(masterKey));
+          });
+        }
+
+        function ui_refreshStatusDots_() {
+          ui_recomputeCollectionStatusesFromEffectiveMasters_();
+          ui_updateVisibleCollectionRowStatuses_();
+          ui_updateVisibleMasterRowStatuses_();
+        }
+
+        function n3_roundRatioByDisplayedPercent_(ratio) {
+          var percentText = n3_formatPercent_(ratio);
+          var parsedPercent = n3_parseNumber_(percentText);
+
+          if (parsedPercent === null) {
+            return null;
+          }
+
+          return Number(parsedPercent) / 100;
+        }
+
+        function n3_computeRuntimeMasterStatus_(masterId) {
+          var normalizedId = normalizeMasterId_(masterId);
+          var runtimeKeys;
+          var hasProblem = false;
+
+          if (
+            !normalizedId ||
+            !n3ActiveWorkState ||
+            !n3ActiveWorkState.editableByVariantKey ||
+            typeof n3ActiveWorkState.editableByVariantKey !== "object" ||
+            normalizeMasterId_(n3ActiveWorkMasterId) !== normalizedId
+          ) {
+            return ui_getPersistedMasterStatus_(normalizedId);
+          }
+
+          runtimeKeys = Object.keys(n3ActiveWorkState.editableByVariantKey);
+          if (runtimeKeys.length === 0) {
+            return ui_getPersistedMasterStatus_(normalizedId);
+          }
+
+          runtimeKeys.forEach(function(runtimeKey) {
+            var fallbackVariant = n3VariantSourceByRuntimeKey[runtimeKey] || null;
+            var editableValues = n3_getEditableValuesForRuntime_(runtimeKey, fallbackVariant);
+            var derivedValues = n3_computeDerivedValues_(editableValues);
+            var roundedMaPou = n3_roundRatioByDisplayedPercent_(derivedValues.ma_pou);
+
+            if (roundedMaPou === null || roundedMaPou < 0.2) {
+              hasProblem = true;
+            }
+          });
+
+          return hasProblem ? "problem" : "ok";
+        }
+
         function buildCollectionRow(item, isActive, includeFraction) {
           var row = document.createElement("li");
           var cellPastille = document.createElement("div");
@@ -1929,7 +2173,7 @@
           var cellName = document.createElement("div");
 
           row.className = "collection-row";
-          row.setAttribute("data-status", item.status);
+          row.setAttribute("data-status", ui_getEffectiveMasterStatus_(item.key));
           row.setAttribute("data-active", "false");
           row.setAttribute("data-hoverable", "true");
           row.setAttribute("data-master-key", item.key);
@@ -2409,6 +2653,7 @@
 
         function n3_commitActiveWorkToReference_(options) {
           var activeMasterId = normalizeMasterId_(n3ActiveWorkMasterId);
+          var persistedStatus = options && options.persistedStatus ? String(options.persistedStatus) : null;
 
           if (
             !activeMasterId ||
@@ -2438,6 +2683,12 @@
             }
           }
 
+          if (persistedStatus) {
+            ui_setPersistedMasterStatus_(activeMasterId, persistedStatus);
+          }
+          ui_clearRuntimeMasterStatus_(activeMasterId);
+          ui_refreshStatusDots_();
+
           n3RefreshDirtyState_();
           return true;
         }
@@ -2465,13 +2716,19 @@
           n3_setSaveLoading_(true);
           google.script.run
             .withSuccessHandler(function(res) {
+              var persistedStatus;
+
               n3_setSaveLoading_(false);
               if (!res || res.ok !== true) {
                 n3RefreshDirtyState_();
                 return;
               }
 
-              n3_commitActiveWorkToReference_({ realignWork: true });
+              persistedStatus = n3_computeRuntimeMasterStatus_(activeMasterId);
+              n3_commitActiveWorkToReference_({
+                realignWork: true,
+                persistedStatus: persistedStatus
+              });
             })
             .withFailureHandler(function() {
               n3_setSaveLoading_(false);
@@ -2538,11 +2795,18 @@
           if (!activeMasterId || String(n3ActiveWorkMasterId) !== String(activeMasterId)) {
             n3ActiveMasterDiff = null;
             n3UpdateSaveButtonState_();
+            ui_refreshStatusDots_();
             return;
           }
 
           n3ActiveMasterDiff = n3ComputeMasterDiff_(activeMasterId);
           n3UpdateSaveButtonState_();
+          if (n3ActiveMasterDiff && n3ActiveMasterDiff.isDirty === true) {
+            ui_setRuntimeMasterStatus_(activeMasterId, n3_computeRuntimeMasterStatus_(activeMasterId));
+          } else {
+            ui_clearRuntimeMasterStatus_(activeMasterId);
+          }
+          ui_refreshStatusDots_();
         }
 
         function n3_toNumberOrZero_(rawValue) {
@@ -3321,6 +3585,7 @@
 
         function loadAndRenderN3ForMaster_(masterId) {
           var normalizedId = normalizeMasterId_(masterId);
+          var previousMasterId;
           var key;
           var cachedDetail;
           var requestId;
@@ -3331,9 +3596,12 @@
 
           uiActiveMasterId = normalizedId;
           if (n3ActiveWorkMasterId !== null && String(n3ActiveWorkMasterId) !== String(normalizedId)) {
+            previousMasterId = normalizeMasterId_(n3ActiveWorkMasterId);
+            ui_clearRuntimeMasterStatus_(previousMasterId);
             n3ActiveWorkMasterId = null;
             n3ActiveWorkState = null;
             n3RefreshDirtyState_();
+            ui_refreshStatusDots_();
           }
           requestId = uiMasterRenderRequestId + 1;
           uiMasterRenderRequestId = requestId;
@@ -3608,6 +3876,7 @@
 
         function ui_closeC_toB(options) {
           var token;
+          var closingMasterId;
 
           if (UI_IS_TRANSITIONING) {
             return options;
@@ -3617,9 +3886,14 @@
             return options;
           }
 
+          closingMasterId = normalizeMasterId_(n3ActiveWorkMasterId || n3RenderedMasterId || uiActiveMasterId);
           token = ui_beginTransition();
           if (options && options.saved === true) {
             n3_commitActiveWorkToReference_({ realignWork: false });
+          }
+          if (!options || options.saved !== true) {
+            ui_clearRuntimeMasterStatus_(closingMasterId);
+            ui_refreshStatusDots_();
           }
           n3ActiveWorkMasterId = null;
           n3ActiveWorkState = null;

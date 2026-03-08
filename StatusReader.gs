@@ -6,16 +6,79 @@ function computeStatuses(rows) {
     };
   }
 
-  function buildStatus(x, total) {
-    if (total > 0 && x === total) {
-      return "GREEN";
+  function normalizeProfitRatio(value) {
+    var normalized;
+    var num;
+
+    if (value === null || typeof value === "undefined") {
+      return null;
     }
 
-    if (x === 0) {
+    normalized = String(value).trim().replace(",", ".");
+    if (normalized === "") {
+      return null;
+    }
+
+    num = Number(normalized);
+    if (!isFinite(num) || isNaN(num)) {
+      return null;
+    }
+
+    return num;
+  }
+
+  function roundRatioByDisplayedPercent(ratio) {
+    if (ratio === null) {
+      return null;
+    }
+
+    return Number((ratio * 100).toFixed(1)) / 100;
+  }
+
+  function buildMasterStatus(entry) {
+    if (!entry || entry.hasSaved !== true) {
       return "GRAY";
     }
 
-    return "RED";
+    if (entry.hasLowProfitMa === true) {
+      return "RED";
+    }
+
+    return "GREEN";
+  }
+
+  function buildCollectionStatus(masters) {
+    var hasRed = false;
+    var hasGray = false;
+
+    if (!Array.isArray(masters) || masters.length === 0) {
+      return "GRAY";
+    }
+
+    masters.forEach(function(master) {
+      if (!master || typeof master !== "object") {
+        return;
+      }
+
+      if (master.status === "RED") {
+        hasRed = true;
+        return;
+      }
+
+      if (master.status === "GRAY") {
+        hasGray = true;
+      }
+    });
+
+    if (hasRed) {
+      return "RED";
+    }
+
+    if (hasGray) {
+      return "GRAY";
+    }
+
+    return "GREEN";
   }
 
   if (!Array.isArray(rows)) {
@@ -101,29 +164,25 @@ function computeStatuses(rows) {
       mastersMapByCollection[collectionKey][masterKey] = {
         id_master: idMaster,
         nom: row.nom === null || typeof row.nom === "undefined" ? "" : row.nom,
-        x: 0,
-        total: 0
+        savedCount: 0,
+        totalCount: 0,
+        hasSaved: false,
+        hasLowProfitMa: false
       };
     }
 
     masterEntry = mastersMapByCollection[collectionKey][masterKey];
-    masterEntry.total += 1;
+    masterEntry.totalCount += 1;
     if (row.ok === true) {
-      masterEntry.x += 1;
+      var roundedMaPou = roundRatioByDisplayedPercent(normalizeProfitRatio(row.ma_pou));
+
+      masterEntry.savedCount += 1;
+      masterEntry.hasSaved = true;
+      if (roundedMaPou === null || roundedMaPou < 0.2) {
+        masterEntry.hasLowProfitMa = true;
+      }
     }
   }
-
-  collections = Object.keys(collectionsMap).sort(function(a, b) {
-    return a.localeCompare(b);
-  }).map(function(collectionName) {
-    var item = collectionsMap[collectionName];
-
-    return {
-      collection: item.collection,
-      status: buildStatus(item.x, item.total),
-      fraction: buildFraction(item.x, item.total)
-    };
-  });
 
   Object.keys(mastersMapByCollection).sort(function(a, b) {
     return a.localeCompare(b);
@@ -134,8 +193,8 @@ function computeStatuses(rows) {
       return {
         id_master: item.id_master,
         nom: item.nom,
-        status: buildStatus(item.x, item.total),
-        fraction: buildFraction(item.x, item.total)
+        status: buildMasterStatus(item),
+        fraction: buildFraction(item.savedCount, item.totalCount)
       };
     });
 
@@ -150,6 +209,19 @@ function computeStatuses(rows) {
     });
 
     mastersByCollection[collectionName] = masters;
+  });
+
+  collections = Object.keys(collectionsMap).sort(function(a, b) {
+    return a.localeCompare(b);
+  }).map(function(collectionName) {
+    var item = collectionsMap[collectionName];
+    var masters = mastersByCollection[collectionName] || [];
+
+    return {
+      collection: item.collection,
+      status: buildCollectionStatus(masters),
+      fraction: buildFraction(item.x, item.total)
+    };
   });
 
   return {
