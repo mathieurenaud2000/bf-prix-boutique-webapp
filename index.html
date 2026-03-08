@@ -2643,7 +2643,9 @@
           var profitMaValueNode;
           var profitMaUnitNode;
           var officialPriceInputNode;
-          var thresholdValue = Number(mPouValue);
+          var displayPercentText = n3_formatPercent_(mPouValue);
+          var displayPercentNumber = n3_parseNumber_(displayPercentText);
+          var thresholdValue = displayPercentNumber === null ? NaN : Number(displayPercentNumber) / 100;
           var isNumeric = isFinite(thresholdValue) && !isNaN(thresholdValue);
           var isGood = isNumeric && thresholdValue >= 0.2;
           var isBad = isNumeric && thresholdValue < 0.2;
