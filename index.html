@@ -3081,6 +3081,8 @@
             editableValues[fieldName] = n3_getWorkEditableValue_(runtimeKey, fieldName, variant[fieldName]);
           });
           editableValues.bf_sal = variant.bf_sal;
+          editableValues.bf_web_pur = variant.bf_web_pur;
+          editableValues.m_pur = variant.m_pur;
           editableValues.ma_pur = variant.ma_pur;
 
           return editableValues;
@@ -3104,7 +3106,7 @@
           var bf_cou = bf_fix + bf_var;
           var bf_pou = bf_pri !== 0 ? (bf_pri - bf_cou) / bf_pri : null;
           var bf_web_ges = 10;
-          var bf_web_pur = 15;
+          var bf_web_pur = n3_toNumberOrZero_(editableValues.bf_web_pur);
           var bf_web_squ = bf_pri * 0.0355;
           var bf_web_fix = bf_pri * 0.2835;
           var bf_web_var = cout_base + bf_web_ges + bf_web_pur + bf_web_squ;
@@ -3113,7 +3115,7 @@
           var bf_web_pou = bf_pri !== 0 ? bf_web_pro / bf_pri : null;
           var m_pri = bf_pri / 2;
           var m_com = m_pri * 0.05;
-          var m_pur = 15;
+          var m_pur = n3_toNumberOrZero_(editableValues.m_pur);
           var m_fix = m_pri * 0.2835;
           var m_cou = cout_base + m_pur + m_com + m_fix;
           var m_pro = m_pri - m_cou;
@@ -3126,7 +3128,7 @@
           var ma_pri = bf_pri * 0.435;
           var ma_com = ma_pri * 0;
           var ma_fix = ma_pri * 0.2835;
-          var ma_cou = cout_base + 15 + ma_com + ma_fix;
+          var ma_cou = cout_base + ma_pur + ma_com + ma_fix;
           var ma_pro = ma_pri - ma_cou;
           var ma_pou = ma_pri !== 0 ? ma_pro / ma_pri : null;
 

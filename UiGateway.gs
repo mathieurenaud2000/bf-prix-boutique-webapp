@@ -52,6 +52,8 @@ function buildUiMasterDetailData_(data) {
       bf_pri: variant.bf_pri,
       bf_sug: variant.bf_sug,
       bf_sal: variant.bf_sal,
+      bf_web_pur: variant.bf_web_pur,
+      m_pur: variant.m_pur,
       ma_pur: variant.ma_pur,
       bf_pou: variant.bf_pou,
       bf_web_pou: variant.bf_web_pou,
