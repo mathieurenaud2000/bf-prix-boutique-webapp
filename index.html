@@ -3081,6 +3081,7 @@
             editableValues[fieldName] = n3_getWorkEditableValue_(runtimeKey, fieldName, variant[fieldName]);
           });
           editableValues.bf_sal = variant.bf_sal;
+          editableValues.ma_pur = variant.ma_pur;
 
           return editableValues;
         }
@@ -3092,9 +3093,10 @@
           var chaine = n3_toNumberOrZero_(editableValues.chaine);
           var boite = n3_toNumberOrZero_(editableValues.boite);
           var bf_pri = n3_toNumberOrZero_(editableValues.bf_pri);
+          var ma_pur = n3_toNumberOrZero_(editableValues.ma_pur);
           var salaire = temps * 35;
           var cout_base = salaire + metal_prix + matiere + chaine + boite;
-          var bf_sug = (cout_base + 15) / (0.5165 * 0.435);
+          var bf_sug = (cout_base + ma_pur) / (0.5165 * 0.435);
           var bf_fix = bf_pri * 0.2835;
           var bf_sal = n3_toNumberOrZero_(editableValues.bf_sal);
           var bf_com = bf_pri * 0.05;
