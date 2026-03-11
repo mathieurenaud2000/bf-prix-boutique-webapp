@@ -2496,8 +2496,9 @@
           return Number(temps) * N3_LABOR_HOURLY_RATE;
         }
 
-        function n3NormalizeComparableValue_(value) {
-          var normalized = value;
+        function n3NormalizeComparableValue_(fieldName, value) {
+          var normalized;
+          var formatted;
 
           if (value === null || typeof value === "undefined") {
             return null;
@@ -2510,7 +2511,10 @@
             }
           }
 
-          return Number(normalized);
+          formatted = n3_formatByField_(fieldName, value);
+          normalized = n3_parseNumber_(formatted);
+
+          return normalized === null ? null : Number(normalized);
         }
 
         function n3BuildWorkVariantsByRowRef_(workState) {
@@ -2563,9 +2567,11 @@
 
           N3_PERSISTABLE_FIELDS.forEach(function(fieldName) {
             var referenceValue = n3NormalizeComparableValue_(
+              fieldName,
               referenceVariant ? referenceVariant[fieldName] : null
             );
             var workValue = n3NormalizeComparableValue_(
+              fieldName,
               workVariant ? workVariant[fieldName] : null
             );
             var changed = referenceValue !== workValue;
