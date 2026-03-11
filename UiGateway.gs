@@ -51,6 +51,7 @@ function buildUiMasterDetailData_(data) {
       fabrication_prix: variant.fabrication_prix,
       bf_pri: variant.bf_pri,
       bf_sug: variant.bf_sug,
+      bf_sal: variant.bf_sal,
       bf_pou: variant.bf_pou,
       bf_web_pou: variant.bf_web_pou,
       m_pou: variant.m_pou,
