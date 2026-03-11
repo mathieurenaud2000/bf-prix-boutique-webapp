@@ -3080,7 +3080,9 @@
           N3_PERSISTABLE_FIELDS.forEach(function(fieldName) {
             editableValues[fieldName] = n3_getWorkEditableValue_(runtimeKey, fieldName, variant[fieldName]);
           });
+          editableValues.taux = variant.taux;
           editableValues.bf_sal = variant.bf_sal;
+          editableValues.bf_web_ges = variant.bf_web_ges;
           editableValues.bf_web_pur = variant.bf_web_pur;
           editableValues.m_pur = variant.m_pur;
           editableValues.ma_pur = variant.ma_pur;
@@ -3095,8 +3097,9 @@
           var chaine = n3_toNumberOrZero_(editableValues.chaine);
           var boite = n3_toNumberOrZero_(editableValues.boite);
           var bf_pri = n3_toNumberOrZero_(editableValues.bf_pri);
+          var taux = n3_toNumberOrZero_(editableValues.taux);
           var ma_pur = n3_toNumberOrZero_(editableValues.ma_pur);
-          var salaire = temps * 35;
+          var salaire = temps * taux;
           var cout_base = salaire + metal_prix + matiere + chaine + boite;
           var bf_sug = (cout_base + ma_pur) / (0.5165 * 0.435);
           var bf_fix = bf_pri * 0.2835;
@@ -3105,7 +3108,7 @@
           var bf_var = cout_base + bf_sal + bf_com;
           var bf_cou = bf_fix + bf_var;
           var bf_pou = bf_pri !== 0 ? (bf_pri - bf_cou) / bf_pri : null;
-          var bf_web_ges = 10;
+          var bf_web_ges = n3_toNumberOrZero_(editableValues.bf_web_ges);
           var bf_web_pur = n3_toNumberOrZero_(editableValues.bf_web_pur);
           var bf_web_squ = bf_pri * 0.0355;
           var bf_web_fix = bf_pri * 0.2835;
@@ -3558,6 +3561,9 @@
           var nodes;
           var titleCells;
           var offset;
+          var salaryRowValueNode;
+          var salaryRow;
+          var salaryLabel;
 
           initN3ReadonlyBindings_();
           if (!n3Root) {
@@ -3597,6 +3603,15 @@
                 cell.textContent = "";
               }
             });
+          }
+
+          salaryRowValueNode = n3Root.querySelector('[data-field="salaire"][data-variant-index="0"]');
+          salaryRow = salaryRowValueNode && salaryRowValueNode.closest(".n3-grid-row")
+            ? salaryRowValueNode.closest(".n3-grid-row")
+            : null;
+          salaryLabel = salaryRow ? salaryRow.querySelector(".n3-label") : null;
+          if (salaryLabel) {
+            salaryLabel.textContent = "Taux horaire 35$";
           }
         }
 
@@ -3672,6 +3687,11 @@
           var masterId;
           var isMasterChanged;
           var tabsConfig;
+          var salaryRowValueNode;
+          var salaryRow;
+          var salaryLabel;
+          var firstVariantTaux;
+          var parsedTaux;
 
           initN3ReadonlyBindings_();
           resetN3ReadonlyFields_();
@@ -3690,6 +3710,20 @@
           }
 
           allVariants = normalizeN3Variants_(detail.variants);
+          firstVariantTaux = allVariants.length > 0 && allVariants[0]
+            ? allVariants[0].taux
+            : null;
+          parsedTaux = n3_parseNumber_(firstVariantTaux);
+          salaryRowValueNode = n3Root.querySelector('[data-field="salaire"][data-variant-index="0"]');
+          salaryRow = salaryRowValueNode && salaryRowValueNode.closest(".n3-grid-row")
+            ? salaryRowValueNode.closest(".n3-grid-row")
+            : null;
+          salaryLabel = salaryRow ? salaryRow.querySelector(".n3-label") : null;
+          if (salaryLabel) {
+            salaryLabel.textContent = parsedTaux === null
+              ? "Taux horaire 35$"
+              : "Taux horaire " + String(parsedTaux).replace(".", ",") + "$";
+          }
           n3_buildReferenceStateForDetail_(detail, allVariants);
           if (
             isMasterChanged ||
